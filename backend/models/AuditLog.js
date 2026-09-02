@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 // One row per meaningful event on a payment — this feeds the judge-facing audit trail.
 const AuditLogSchema = new mongoose.Schema(
   {
+    merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", required: true },
     event: {
       type: String,
@@ -12,6 +13,7 @@ const AuditLogSchema = new mongoose.Schema(
         "action_approved",
         "action_rejected",
         "sms_sent",
+        "link_opened",
         "retry_attempted",
         "payment_recovered",
         "recovery_stopped",

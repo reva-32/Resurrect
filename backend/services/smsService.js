@@ -6,7 +6,7 @@ import SMSLog from "../models/SMSLog.js";
  * landing in time. Flip SMS_MOCK_MODE=false once a real provider + template
  * are approved.
  */
-export async function sendRecoverySMS({ payment, customer, message, recoveryLink }) {
+export async function sendRecoverySMS({ merchant, payment, customer, message, recoveryLink }) {
   const mockMode = process.env.SMS_MOCK_MODE !== "false";
 
   const finalMessage = message.replace("[RECOVERY_LINK]", recoveryLink);
@@ -14,6 +14,7 @@ export async function sendRecoverySMS({ payment, customer, message, recoveryLink
   if (mockMode) {
     console.log(`\n[SMS - MOCK] To: ${customer.phone}\n${finalMessage}\n`);
     const log = await SMSLog.create({
+      merchant,
       payment: payment._id,
       customer: customer._id,
       message: finalMessage,

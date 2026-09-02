@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const RecoveryAttemptSchema = new mongoose.Schema(
   {
+    merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", required: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
 

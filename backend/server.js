@@ -25,7 +25,20 @@ app.use(helmet());
 // BEFORE express.json() and only that route uses express.raw().
 app.use("/api/webhooks", webhookRoutes);
 
-app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
+// The merchant dashboard and the public customer payment page are both routes
+// in the same React/Vite frontend, so production needs only CLIENT_URL.
+const ALLOWED_ORIGINS = ["http://localhost:5173", process.env.CLIENT_URL].filter(Boolean);
+app.use(
+  cors({
+    origin(origin, callback) {
+      // No Origin header (curl, server-to-server, some mobile clients) — allow.
+      if (!origin || ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 app.use(express.json());
 
 // Blunt brute-force protection on login/signup — 20 attempts per 15 min per IP.
@@ -61,7 +74,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    app.listen(PORT, () => console.log(`[server] listening on http://localhost:${PORT}`));
+    app.listen(PORT, "0.0.0.0", () => console.log(`[server] listening on 0.0.0.0:${PORT}`));
   })
   .catch((err) => {
     console.error("[server] failed to connect to DB:", err.message);

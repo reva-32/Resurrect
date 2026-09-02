@@ -12,6 +12,7 @@ const FAILURE_REASONS = [
 
 const PaymentSchema = new mongoose.Schema(
   {
+    merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
     amount: { type: Number, required: true }, // in paise (₹1 = 100)
     currency: { type: String, default: "INR" },
@@ -35,6 +36,7 @@ const PaymentSchema = new mongoose.Schema(
 
     retryCount: { type: Number, default: 0 },
     recoveredAmount: { type: Number, default: 0 },
+    recoveryLink: { type: String }, // the customer-app URL sent via SMS, so the merchant dashboard can show/reopen it
     recoveredAt: { type: Date },
 
     isSynthetic: { type: Boolean, default: true }, // false only for the real demo case(s)

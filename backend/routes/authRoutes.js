@@ -1,6 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
-import { hashPassword, verifyPassword, signToken } from "../services/authService.js";
+import { hashPassword, verifyPassword, signToken, isValidEmail, isStrongPassword } from "../services/authService.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -11,8 +11,11 @@ router.post("/signup", async (req, res) => {
     if (!businessName || !name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ error: "Password must be at least 8 characters and include a letter, number, and special character" });
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -36,6 +39,8 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
+    if (!isValidEmail(email)) return res.status(400).json({ error: "Please enter a valid email address" });
+    if (!isStrongPassword(password)) return res.status(400).json({ error: "Password must be at least 8 characters and include a letter, number, and special character" });
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(401).json({ error: "Invalid email or password" });

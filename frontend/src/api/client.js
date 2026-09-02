@@ -18,6 +18,7 @@ export const getMe = () => client.get("/auth/me").then((r) => r.data);
 
 // --- Dashboard / payments / recovery ---
 export const getMetrics = () => client.get("/dashboard/metrics").then((r) => r.data);
+export const seedData = (payload = {}) => client.post("/dashboard/seed", payload).then((r) => r.data);
 export const getPayments = (status) =>
   client.get("/payments", { params: status ? { status } : {} }).then((r) => r.data);
 export const getPayment = (id) => client.get(`/payments/${id}`).then((r) => r.data);
@@ -30,6 +31,7 @@ export default client;
 
 // --- Public (no auth) — customer-facing ---
 export const getPublicPayment = (id) => client.get(`/public/payments/${id}`).then((r) => r.data);
+export const markPaymentViewed = (id) => client.post(`/public/payments/${id}/viewed`).catch(() => {});
 
 // --- Settings / onboarding status ---
 export const getSettingsStatus = () => client.get("/settings/status").then((r) => r.data);

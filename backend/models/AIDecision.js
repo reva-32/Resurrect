@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const AIDecisionSchema = new mongoose.Schema(
   {
+    merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", required: true },
 
     // What the model recommended, before backend policy checked it

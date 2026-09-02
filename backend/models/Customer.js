@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const CustomerSchema = new mongoose.Schema(
   {
+    merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     name: { type: String, required: true },
     phone: { type: String, required: true }, // E.164, e.g. +91XXXXXXXXXX
     email: { type: String },

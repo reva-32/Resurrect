@@ -1,6 +1,8 @@
 import React from "react";
+import "../index.css";
 import { Link } from "react-router-dom";
 import { ArrowRight, Zap, ShieldCheck, MessageSquare, BarChart3, ScrollText, GitBranch, Lock } from "lucide-react";
+import ThemeToggle from "../components/ThemeToggle";
 
 const FEATURES = [
   {
@@ -20,8 +22,8 @@ const FEATURES = [
   },
   {
     icon: BarChart3,
-    title: "Baseline vs AI-assisted",
-    body: "See exactly how much more revenue the AI layer recovers compared to simple rule-based reminders — the value is measured, not claimed.",
+    title: "Recovery funnel, end to end",
+    body: "Failed payments in, recovery actions taken, successful outcomes out — see exactly where revenue is being recovered and where it's leaking through the funnel.",
   },
   {
     icon: ScrollText,
@@ -42,19 +44,20 @@ const FEATURES = [
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-paper text-ink">
+    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white">
       {/* Nav */}
       <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="font-display font-extrabold text-lg tracking-tight">
-          Recovery<span className="text-accent">.ai</span>
+           <span className="text-accent">Resurrect</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/login" className="text-sm font-medium text-ink/70 hover:text-ink px-3 py-2">
+          <ThemeToggle />
+          <Link to="/login" className="text-sm font-medium text-ink/70 hover:text-ink dark:text-white/70 dark:hover:text-white px-3 py-2">
             Log in
           </Link>
           <Link
             to="/signup"
-            className="text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink/90 transition"
+            className="text-sm font-medium bg-ink dark:bg-white text-white dark:text-ink px-4 py-2 rounded-xl hover:bg-ink/90 dark:hover:bg-white/90 transition"
           >
             Get started
           </Link>
@@ -70,7 +73,7 @@ export default function Landing() {
           <h1 className="font-display text-5xl md:text-6xl font-extrabold leading-[1.05] tracking-tight mb-6">
             Turn failed payments into <span className="text-accent">recovered revenue.</span>
           </h1>
-          <p className="text-lg text-ink/60 leading-relaxed mb-8 max-w-xl">
+          <p className="text-lg text-ink/60 dark:text-white/60 leading-relaxed mb-8 max-w-xl">
             An AI agent that finds failed payments, decides the right action for each one,
             reaches out automatically, and proves — with numbers — how much more it recovers
             than a rules-only approach.
@@ -78,27 +81,27 @@ export default function Landing() {
           <div className="flex items-center gap-4">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 bg-ink text-white px-6 py-3.5 rounded-xl font-medium hover:bg-ink/90 transition"
+              className="inline-flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-6 py-3.5 rounded-xl font-medium hover:bg-ink/90 dark:hover:bg-white/90 transition"
             >
               Start recovering revenue <ArrowRight size={16} />
             </Link>
-            <Link to="/login" className="text-sm font-medium text-ink/60 hover:text-ink">
+            <Link to="/login" className="text-sm font-medium text-ink/60 hover:text-ink dark:text-white/60 dark:hover:text-white">
               I already have an account
             </Link>
           </div>
         </div>
 
         {/* Stat strip */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-black/5 rounded-2xl overflow-hidden border border-black/5">
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-black/5 dark:bg-white/10 rounded-2xl overflow-hidden border border-black/5 dark:border-white/10">
           {[
             ["₹4.8L+", "revenue at risk, sample run"],
             ["38%", "typical recovery rate"],
             ["3", "AI actions: retry, SMS, stop"],
             ["100%", "of AI actions policy-checked"],
           ].map(([stat, label]) => (
-            <div key={label} className="bg-white p-6">
+            <div key={label} className="bg-white dark:bg-panel p-6">
               <div className="font-display text-2xl font-bold text-accent">{stat}</div>
-              <div className="text-sm text-ink/50 mt-1">{label}</div>
+              <div className="text-sm text-ink/50 dark:text-white/50 mt-1">{label}</div>
             </div>
           ))}
         </div>
@@ -110,26 +113,29 @@ export default function Landing() {
           <h2 className="font-display text-3xl font-bold tracking-tight mb-3">
             Not just "send everyone a reminder."
           </h2>
-          <p className="text-ink/60">
+          <p className="text-ink/60 dark:text-white/60">
             Basic failed-payment recovery is generic. The intelligence — and the safety rails
             around it — is where this gets interesting.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {FEATURES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="bg-white rounded-2xl border border-black/5 shadow-soft p-6">
+            <div
+              key={title}
+              className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6 hover:-translate-y-0.5 hover:shadow-lg transition"
+            >
               <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-4">
                 <Icon size={20} />
               </div>
               <div className="font-display font-bold mb-2">{title}</div>
-              <div className="text-sm text-ink/60 leading-relaxed">{body}</div>
+              <div className="text-sm text-ink/60 dark:text-white/60 leading-relaxed">{body}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="bg-ink text-white">
+      <section className="bg-ink dark:bg-panel text-white">
         <div className="max-w-6xl mx-auto px-6 py-16 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <div className="font-display text-2xl font-bold mb-2">See it recover ₹ in real time.</div>
@@ -146,8 +152,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-8 text-sm text-ink/40">
-        Revenue Recovery Agent — Razorpay AI Buildathon submission.
+      <footer className="max-w-6xl mx-auto px-6 py-8 text-sm text-ink/40 dark:text-white/30">
+        Resurrect — AI Revenue Recovery Engine.
       </footer>
     </div>
   );

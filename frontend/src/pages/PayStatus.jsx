@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Clock, ExternalLink } from "lucide-react";
-import { getPublicPayment } from "../api/client";
+import { getPublicPayment, markPaymentViewed } from "../api/client";
+import ThemeToggle from "../components/ThemeToggle";
 
 const rupees = (paise) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -30,28 +31,36 @@ export default function PayStatus() {
 
   useEffect(() => {
     load();
+    markPaymentViewed(paymentId);
     pollRef.current = setInterval(load, 4000);
     return () => clearInterval(pollRef.current);
-  }, [load]);
+  }, [load, paymentId]);
 
   if (error) {
     return (
-      <div className="min-h-screen bg-paper flex items-center justify-center px-6">
-        <div className="text-center text-ink/60">{error}</div>
+      <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white flex items-center justify-center px-6">
+        <div className="text-center text-ink/60 dark:text-white/60">{error}</div>
       </div>
     );
   }
 
   if (!data) {
-    return <div className="min-h-screen bg-paper flex items-center justify-center text-ink/40">Loading…</div>;
+    return (
+      <div className="min-h-screen bg-paper dark:bg-[#0B0D12] flex items-center justify-center text-ink/40 dark:text-white/40">
+        Loading…
+      </div>
+    );
   }
 
   const recovered = data.status === "recovered";
 
   return (
-    <div className="min-h-screen bg-paper flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-black/5 shadow-soft p-8 text-center">
-        <div className="text-xs font-medium text-ink/40 mb-6">{data.businessName}</div>
+    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white flex items-center justify-center px-6 py-12">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <div className="w-full max-w-sm bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-8 text-center">
+        <div className="text-xs font-medium text-ink/40 dark:text-white/40 mb-6">{data.businessName}</div>
 
         {recovered ? (
           <>
@@ -59,7 +68,7 @@ export default function PayStatus() {
               <CheckCircle2 size={28} />
             </div>
             <div className="font-display text-xl font-bold text-recovered mb-1">Payment received</div>
-            <div className="text-sm text-ink/50">
+            <div className="text-sm text-ink/50 dark:text-white/50">
               {rupees(data.amount)} — thank you{data.customerName ? `, ${data.customerName}` : ""}.
             </div>
           </>
@@ -71,25 +80,25 @@ export default function PayStatus() {
             <div className="font-display text-xl font-bold mb-1">
               Hi{data.customerName ? ` ${data.customerName}` : ""}, your payment didn't go through
             </div>
-            <div className="text-2xl font-display font-bold text-ink my-3">{rupees(data.amount)}</div>
-            <div className="text-sm text-ink/50 mb-6">You can complete it securely below.</div>
+            <div className="text-2xl font-display font-bold text-ink dark:text-white my-3">{rupees(data.amount)}</div>
+            <div className="text-sm text-ink/50 dark:text-white/50 mb-6">You can complete it securely below.</div>
 
             {data.isLive && data.paymentLinkUrl ? (
               <a
                 href={data.paymentLinkUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-ink text-white px-5 py-3 rounded-xl font-medium text-sm hover:bg-ink/90 transition"
+                className="inline-flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-5 py-3 rounded-xl font-medium text-sm hover:bg-ink/90 dark:hover:bg-white/90 transition"
               >
                 Pay now <ExternalLink size={14} />
               </a>
             ) : (
-              <div className="text-xs text-ink/40 bg-black/[0.03] rounded-lg px-4 py-3">
-                This is a demo recovery link — in production, a live Razorpay checkout would appear here.
+              <div className="text-xs text-ink/40 dark:text-white/40 bg-black/[0.03] dark:bg-white/5 rounded-lg px-4 py-3">
+                The live Razorpay payment link is not ready yet. Please use the merchant dashboard to start the live recovery.
               </div>
             )}
 
-            <div className="text-xs text-ink/30 mt-6">This page updates automatically once payment is received.</div>
+            <div className="text-xs text-ink/30 dark:text-white/30 mt-6">This page updates automatically once payment is received.</div>
           </>
         )}
       </div>

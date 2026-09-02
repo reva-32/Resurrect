@@ -22,10 +22,16 @@ export async function createRecoveryPaymentLink({ payment, customer }) {
       contact: customer.phone,
       email: customer.email || undefined,
     },
-    notify: { sms: false, email: false }, // we send our own SMS via smsService
+    notify: {
+      sms: process.env.RAZORPAY_NOTIFY_SMS !== "false",
+      email: process.env.RAZORPAY_NOTIFY_EMAIL === "true",
+    },
     reminder_enable: false,
+    // Correlation metadata used by the webhook to map the Razorpay payment
+    // back to our MongoDB payment. Keep both fields for payload compatibility.
+    reference_id: String(payment._id),
     notes: { paymentId: String(payment._id) },
-    callback_url: `${process.env.CLIENT_URL}/recovery/${payment._id}/complete`,
+    callback_url: `${process.env.CLIENT_URL}/pay/${payment._id}`,
     callback_method: "get",
   });
 
@@ -37,9 +43,18 @@ export async function createRecoveryPaymentLink({ payment, customer }) {
  * Reject anything that doesn't match RAZORPAY_WEBHOOK_SECRET.
  */
 export function verifyWebhookSignature(rawBody, signature) {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret || !signature || !Buffer.isBuffer(rawBody)) return false;
+
   const expected = crypto
-    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+    .createHmac("sha256", secret)
     .update(rawBody)
     .digest("hex");
-  return expected === signature;
+
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  const signatureBuffer = Buffer.from(String(signature), "utf8");
+  return (
+    expectedBuffer.length === signatureBuffer.length &&
+    crypto.timingSafeEqual(expectedBuffer, signatureBuffer)
+  );
 }

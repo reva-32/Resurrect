@@ -1,33 +1,63 @@
-// Deterministic, rule-based decisioning. This is the baseline the AI is measured against,
-// and it's also the backend policy layer that the AI's recommendations must pass through.
+// Deterministic, rule-based decisioning — also the backend policy layer that
+// the AI's recommendations must pass through.
 
 export const MAX_RETRIES = 2;
 
 /**
  * Given a payment (with .failureReason and .retryCount), decide an action using
- * simple rules only — no AI. Used both as (a) the baseline for the
- * "baseline vs AI-assisted" comparison, and (b) a fallback if the AI call fails.
+ * simple rules only — no AI. Used as a fallback whenever the AI call fails or
+ * is skipped for this run.
  */
+const FAILURE_REASON_LABELS = {
+  bank_timeout: "the bank timed out during authorization",
+  network_error: "a network error interrupted the payment",
+  checkout_abandoned: "the customer left checkout without completing payment",
+  insufficient_funds: "the customer's account had insufficient funds",
+  card_declined: "the customer's bank declined the card",
+  otp_failed: "OTP verification failed",
+  unknown: "the failure reason wasn't reported by the bank",
+};
+
 export function decideActionByRules(payment) {
   const { failureReason, retryCount } = payment;
+  const rupees = `₹${((payment.amount || 0) / 100).toFixed(0)}`;
+  const why = FAILURE_REASON_LABELS[failureReason] || FAILURE_REASON_LABELS.unknown;
 
   if (retryCount >= MAX_RETRIES) {
-    return { action: "stop", reason: `Already retried ${retryCount} times — stopping per policy.` };
+    return {
+      action: "stop",
+      reason: `Already retried this ${rupees} payment ${retryCount} times with no success — retrying again is unlikely to help, so it's stopped per policy rather than annoying the customer further.`,
+    };
   }
 
   switch (failureReason) {
     case "bank_timeout":
     case "network_error":
-      return { action: "retry", reason: "Transient failure — safe to auto-retry." };
+      return {
+        action: "retry",
+        reason: `${why[0].toUpperCase()}${why.slice(1)} — this is on our/the bank's side, not the customer's, so it's safe to automatically retry the same ${rupees} charge.`,
+      };
     case "checkout_abandoned":
-      return { action: "sms", reason: "Customer likely didn't complete checkout — nudge with SMS." };
+      return {
+        action: "sms",
+        reason: `${why[0].toUpperCase()}${why.slice(1)} — retrying won't help since nothing was actually charged, so an SMS nudge with a payment link is sent instead.`,
+      };
     case "insufficient_funds":
-      return { action: "sms", reason: "Needs the customer to act — send SMS with recovery link, don't auto-retry." };
+      return {
+        action: "sms",
+        reason: `${why[0].toUpperCase()}${why.slice(1)} at the time of the ${rupees} charge — only the customer can fix that, so an SMS is sent rather than auto-retrying the same failed charge.`,
+      };
     case "card_declined":
     case "otp_failed":
-      return { action: "review", reason: "Needs manual/careful handling — flagged for review." };
+      return {
+        action: "review",
+        reason: `${why[0].toUpperCase()}${why.slice(1)} — this can mean a blocked card or fraud check, which needs a human's judgment rather than an automatic retry or message.`,
+      };
     default:
-      return { action: "sms", reason: "Unclear failure reason — default to a gentle SMS nudge." };
+      return {
+        action: "sms",
+        reason: `${why[0].toUpperCase()}${why.slice(1)} for this ${rupees} payment, so a gentle SMS nudge is sent as the safest default while the cause is unclear.`,
+      };
   }
 }
 
@@ -52,27 +82,29 @@ export function applyPolicy(payment, recommendedAction) {
 }
 
 /**
- * SYNTHETIC PAYMENTS ONLY. A synthetic payment has no real bank/customer behind
- * it, so nothing will ever call our webhook for it — without this, every
- * synthetic "sms"/"retry" action would sit at recovery_in_progress forever and
- * the dashboard would never show any successes. This simulates whether the
- * customer would have completed the payment, so metrics/funnel/baseline-vs-AI
- * numbers have something real to show. It is NEVER used for the real demo
- * payment (isSynthetic: false) — that one only resolves via an actual Razorpay
- * webhook, since it's a genuine payment.
+ * SYNTHETIC PAYMENTS ONLY. A synthetic payment has no real bank behind it, so
+ * nothing will ever call our webhook for it — this simulates whether the
+ * customer would have completed the payment.
+ *
+ * Success probability depends on BOTH the failure reason AND the action taken
+ * — not just the failure reason. This rewards matching the action to the
+ * failure (e.g. retry for a transient bank timeout, SMS/priority_sms for a
+ * customer who needs to act), so the simulated outcomes are at least
+ * internally consistent with "the right call for this failure recovers more
+ * often" rather than being pure noise keyed off failure reason alone.
  */
 const SIMULATED_SUCCESS_PROBABILITY = {
-  bank_timeout: 0.75,
-  network_error: 0.7,
-  checkout_abandoned: 0.4,
-  insufficient_funds: 0.3,
-  card_declined: 0.25,
-  otp_failed: 0.35,
-  unknown: 0.3,
+  bank_timeout: { retry: 0.8, priority_sms: 0.55, sms: 0.5, review: 0.2 },
+  network_error: { retry: 0.78, priority_sms: 0.5, sms: 0.45, review: 0.2 },
+  checkout_abandoned: { priority_sms: 0.55, sms: 0.45, retry: 0.25, review: 0.2 },
+  insufficient_funds: { priority_sms: 0.4, sms: 0.35, review: 0.15, retry: 0.1 },
+  card_declined: { review: 0.3, priority_sms: 0.25, sms: 0.2, retry: 0.05 },
+  otp_failed: { priority_sms: 0.45, sms: 0.4, review: 0.3, retry: 0.1 },
+  unknown: { priority_sms: 0.35, sms: 0.3, review: 0.2, retry: 0.15 },
 };
 
 export function simulateSyntheticOutcome(failureReason, action) {
-  if (action === "stop" || action === "review") return false;
-  const p = SIMULATED_SUCCESS_PROBABILITY[failureReason] ?? 0.3;
+  if (action === "stop") return false;
+  const p = SIMULATED_SUCCESS_PROBABILITY[failureReason]?.[action] ?? 0.2;
   return Math.random() < p;
 }

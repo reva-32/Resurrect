@@ -16,19 +16,52 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
     return res.status(400).json({ error: "Invalid webhook signature" });
   }
 
-  const event = JSON.parse(rawBody.toString());
+  let event;
+  try {
+    event = JSON.parse(rawBody.toString("utf8"));
+  } catch {
+    return res.status(400).json({ error: "Invalid JSON payload" });
+  }
+
+  console.log(`[webhook] received ${event.event || "unknown_event"}`);
 
   try {
     if (event.event === "payment_link.paid" || event.event === "payment.captured") {
-      const entity = event.payload.payment_link?.entity || event.payload.payment.entity;
-      const paymentLinkId = entity.id?.startsWith("plink_") ? entity.id : entity.payment_link_id;
+      const paymentLinkEntity = event.payload?.payment_link?.entity;
+      const paymentEntity = event.payload?.payment?.entity;
+      const paymentLinkId =
+        paymentLinkEntity?.id ||
+        paymentEntity?.payment_link_id ||
+        paymentEntity?.payment_link?.id;
+      const internalPaymentId =
+        paymentLinkEntity?.notes?.paymentId ||
+        paymentLinkEntity?.notes?.internal_payment_id ||
+        paymentLinkEntity?.reference_id;
 
-      const payment = await Payment.findOne({ "razorpay.paymentLinkId": paymentLinkId });
-      if (payment && payment.status !== "recovered") {
+      let payment = null;
+      if (paymentLinkId) {
+        payment = await Payment.findOne({ "razorpay.paymentLinkId": paymentLinkId });
+      }
+      if (!payment && internalPaymentId) {
+        payment = await Payment.findById(internalPaymentId);
+      }
+
+      if (!payment) {
+        console.warn("[webhook] no matching payment found", { paymentLinkId, internalPaymentId });
+        return res.status(200).json({ received: true, matched: false });
+      }
+
+      console.log(`[webhook] matched payment ${payment._id}`);
+
+      if (payment.status !== "recovered") {
         payment.status = "recovered";
-        payment.recoveredAmount = payment.amount;
+        payment.recoveredAmount = Number(
+          paymentEntity?.amount || paymentLinkEntity?.amount_paid || payment.amount
+        );
         payment.recoveredAt = new Date();
-        payment.razorpay.paymentId = event.payload.payment?.entity?.id;
+        if (paymentEntity?.id) {
+          payment.razorpay.paymentId = paymentEntity.id;
+        }
         await payment.save();
 
         await RecoveryAttempt.updateMany(
@@ -36,15 +69,24 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
           { outcome: "success", resolvedAt: new Date() }
         );
 
-        await AuditLog.create({
-          payment: payment._id,
-          event: "payment_recovered",
-          detail: `Payment recovered via Razorpay webhook (${event.event})`,
-          metadata: { razorpayPaymentId: payment.razorpay.paymentId },
-        });
+        try {
+          await AuditLog.create({
+            merchant: payment.merchant,
+            payment: payment._id,
+            event: "payment_recovered",
+            detail: `Payment recovered via Razorpay webhook (${event.event})`,
+            metadata: {
+              razorpayPaymentId: payment.razorpay.paymentId,
+              event: event.event,
+            },
+          });
+        } catch (auditErr) {
+          console.error("[webhook] audit log failed after recovery:", auditErr.message);
+        }
       }
     }
 
+    console.log(`[webhook] processed ${event.event || "unknown_event"}`);
     res.json({ received: true });
   } catch (err) {
     console.error("[webhook] processing error:", err.message);

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { decideActionByRules } from "./recoveryEngine.js";
+import { decideActionByRules, MAX_RETRIES } from "./recoveryEngine.js";
 
 const ALLOWED_ACTIONS = new Set([
   "retry",
@@ -9,118 +9,132 @@ const ALLOWED_ACTIONS = new Set([
   "review",
 ]);
 
-// Demo safety limit:
-// Your current Gemini free-tier project has a 20-request limit.
-// We intentionally use only 15 calls so there is a safety buffer.
-const GEMINI_MAX_CALLS = 15;
-let geminiCallsUsed = 0;
+// Cost control belongs at the call-site (one budget per "Start Recovery" run).
+// A separate runtime flag below stops repeated Gemini requests after the API
+// has explicitly reported quota/rate-limit exhaustion.
+let geminiQuotaUnavailable = false;
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
 /**
- * Ask Gemini to analyze a failed payment and recommend
- * the best recovery action + SMS copy.
+ * AI payment recovery decision engine.
  *
- * The first 15 eligible requests use Gemini.
- * After that, the deterministic rule engine is used.
+ * Gemini analyzes the payment context and recommends
+ * one recovery action.
  *
- * If Gemini fails for any reason (quota, network, API error,
- * invalid response, etc.), the rule engine safely takes over.
+ * The deterministic rule engine is used as a safety
+ * fallback whenever Gemini is unavailable or invalid.
  */
 export async function getAIDecision(payment, customer) {
-  const prompt = buildPrompt(payment, customer);
-  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const model =
+    process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-  // ---------------------------------------------------------
-  // DEMO AI CALL LIMIT
-  // ---------------------------------------------------------
-  if (geminiCallsUsed >= GEMINI_MAX_CALLS) {
-    console.log(
-      `[aiService] Gemini demo limit reached (${GEMINI_MAX_CALLS} calls). ` +
-        "Using rule engine for remaining payments."
-    );
-
-    const fallback = decideActionByRules(payment);
-
-    return {
-      recommendedAction: fallback.action,
-
-      reasoning:
-        `[AI limit reached — using rules] ${fallback.reason}`,
-
-      smsMessage: null,
-
-      model: "rules-fallback",
-
-      rawResponse: null,
-    };
+  // If Gemini has already told this server that the project quota/rate limit
+  // is exhausted, do not hammer the API again for every payment in the same run.
+  if (geminiQuotaUnavailable) {
+    return createFallbackDecision(payment, "Gemini quota/rate limit already reached");
   }
 
   try {
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
+      throw new Error(
+        "GEMINI_API_KEY is not configured"
+      );
     }
 
-    // Count only actual Gemini attempts.
-    geminiCallsUsed++;
-
     console.log(
-      `[aiService] Gemini request ${geminiCallsUsed}/${GEMINI_MAX_CALLS}`
+      "[aiService] Gemini request"
     );
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
+    // -------------------------------------------------------
+    // GEMINI REQUEST
+    // -------------------------------------------------------
 
-      config: {
-        responseMimeType: "application/json",
-
-        responseSchema: {
-          type: "object",
-
-          properties: {
-            action: {
-              type: "string",
-              enum: [
-                "retry",
-                "sms",
-                "priority_sms",
-                "stop",
-                "review",
-              ],
-            },
-
-            reasoning: {
-              type: "string",
-            },
-
-            sms_message: {
-              type: "string",
-            },
-          },
-
-          required: [
-            "action",
-            "reasoning",
-            "sms_message",
-          ],
+    // Keep the request compatible with the configured Gemini model.
+    // Some model/config combinations reject thinkingConfig with a generic
+    // INVALID_ARGUMENT (400), which previously caused an unnecessary second
+    // Gemini request for every payment. Structured JSON is still enforced by
+    // responseMimeType + responseSchema.
+    const config = {
+      temperature: 0,
+      maxOutputTokens: 800,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["retry", "sms", "priority_sms", "stop", "review"] },
+          reasoning: { type: "string" },
         },
-
-        maxOutputTokens: 300,
+        required: ["action", "reasoning"],
       },
-    });
+    };
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model,
+        contents: buildPrompt(payment, customer),
+        config,
+      });
+    } catch (err) {
+      // A quota/rate-limit response is terminal for this server process.
+      // Do not retry it for the next payment.
+      if (isQuotaOrRateLimitError(err)) {
+        geminiQuotaUnavailable = true;
+      }
+      throw err;
+    }
+
+    console.log(
+      "[aiService] Gemini response received"
+    );
 
     const text = response.text?.trim();
 
+    console.log(
+      "[aiService] Gemini raw:",
+      text
+    );
+
     if (!text) {
-      throw new Error("Gemini returned an empty response");
+      throw new Error(
+        "Gemini returned an empty response"
+      );
     }
 
-    console.log("[aiService] Gemini response received");
+    // -------------------------------------------------------
+    // PARSE RESPONSE
+    // -------------------------------------------------------
 
-    const parsed = JSON.parse(text);
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      // Safety fallback in case Gemini adds
+      // extra text around the JSON object.
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+
+      if (start === -1 || end === -1) {
+        throw new Error(
+          `Gemini returned no JSON object: ${text}`
+        );
+      }
+
+      const jsonText = text.slice(
+        start,
+        end + 1
+      );
+
+      parsed = JSON.parse(jsonText);
+    }
+
+    // -------------------------------------------------------
+    // VALIDATE ACTION
+    // -------------------------------------------------------
 
     if (!ALLOWED_ACTIONS.has(parsed.action)) {
       throw new Error(
@@ -128,26 +142,41 @@ export async function getAIDecision(payment, customer) {
       );
     }
 
-    // Safety rule:
-    // Gemini must never override our retry limit.
+    // -------------------------------------------------------
+    // SAFETY: RETRY LIMIT
+    // -------------------------------------------------------
+
     if (
       parsed.action === "retry" &&
-      payment.retryCount >= 2
+      payment.retryCount >= MAX_RETRIES
     ) {
-      throw new Error(
-        "Gemini recommended retry despite retry limit"
+      console.warn(
+        "[aiService] Gemini suggested retry after " +
+          "the retry limit. Using rules instead."
+      );
+
+      return createFallbackDecision(
+        payment,
+        "Gemini recommendation violated retry limit"
       );
     }
+
+    // -------------------------------------------------------
+    // SUCCESS
+    // -------------------------------------------------------
 
     return {
       recommendedAction: parsed.action,
 
       reasoning:
-        parsed.reasoning ||
-        "Gemini recommended this action based on the payment context.",
+        parsed.reasoning?.trim() ||
+        "Gemini selected this recovery action based on the payment context.",
 
-      smsMessage:
-        parsed.sms_message?.trim() || null,
+      /*
+       * SMS text is intentionally generated by the
+       * application's SMS service rather than Gemini.
+       */
+      smsMessage: null,
 
       model,
 
@@ -159,28 +188,64 @@ export async function getAIDecision(payment, customer) {
       err.message
     );
 
-    const fallback = decideActionByRules(payment);
-
-    return {
-      recommendedAction: fallback.action,
-
-      reasoning:
-        `[fallback — Gemini unavailable] ${fallback.reason}`,
-
-      smsMessage: null,
-
-      model: "rules-fallback",
-
-      rawResponse: null,
-    };
+    return createFallbackDecision(
+      payment,
+      "Gemini unavailable"
+    );
   }
 }
 
+function isQuotaOrRateLimitError(err) {
+  const status = Number(err?.status || err?.statusCode || err?.code);
+  const message = String(err?.message || "").toLowerCase();
+  return (
+    status === 429 ||
+    message.includes("429") ||
+    message.includes("quota") ||
+    message.includes("rate limit") ||
+    message.includes("resource exhausted") ||
+    message.includes("too many requests")
+  );
+}
+
+
+/**
+ * Deterministic fallback.
+ *
+ * This guarantees that the recovery system continues
+ * working even if Gemini is unavailable.
+ */
+function createFallbackDecision(
+  payment,
+  reason
+) {
+  const fallback =
+    decideActionByRules(payment);
+
+  return {
+    recommendedAction: fallback.action,
+
+    reasoning:
+      `[fallback — ${reason}] ${fallback.reason}`,
+
+    smsMessage: null,
+
+    model: "rules-fallback",
+
+    rawResponse: null,
+  };
+}
+
+/**
+ * Prompt sent to Gemini.
+ *
+ * JSON formatting is handled by responseSchema,
+ * so the prompt only contains the actual business
+ * decision logic.
+ */
 function buildPrompt(payment, customer) {
   return `
-You are a payment recovery assistant for an Indian merchant using Razorpay.
-
-Analyze the failed payment and select exactly one recovery action.
+Analyze this failed payment and choose the best recovery action.
 
 Customer:
 Name: ${customer.name}
@@ -189,26 +254,34 @@ Previous successful payments: ${customer.successfulPaymentsCount}
 Payment:
 Amount: ₹${(payment.amount / 100).toFixed(2)}
 Failure reason: ${payment.failureReason}
-Retry attempts so far: ${payment.retryCount}
+Retry count: ${payment.retryCount}
 
-Allowed actions:
+Choose exactly one action:
+
 retry
 sms
 priority_sms
 stop
 review
 
-Rules:
-1. Never recommend retry when retryCount is 2 or more.
-2. Use sms when a normal recovery message is appropriate.
-3. Use priority_sms when urgent customer follow-up is appropriate.
-4. Use stop when another recovery attempt is unlikely to succeed.
-5. Use review when merchant intervention is required.
-6. Keep reasoning to one short sentence.
-7. If action is sms or priority_sms, sms_message must contain [RECOVERY_LINK].
-8. Otherwise sms_message must be an empty string.
+Decision rules:
 
-Return ONLY the structured response requested by the response schema.
-Do not add explanations, markdown, or code fences.
+- Never choose retry if retry count is 2 or more.
+- Choose retry for temporary failures where another attempt is reasonable.
+- Choose sms for normal customer recovery.
+- Choose priority_sms for urgent or high-value recovery.
+- Choose stop when recovery is unlikely to succeed.
+- Choose review when merchant intervention is appropriate.
+
+Write "reasoning" for a non-technical merchant reading a dashboard, not a developer.
+Requirements:
+- One or two short sentences, plain English, no jargon.
+- Name the specific failure reason and amount, and explain in concrete terms why
+  that makes this action the right call (e.g. "This card was declined by the
+  bank, not by us, so retrying the same card is unlikely to work — sending an
+  SMS lets the customer choose a different payment method instead").
+- Do not just restate the action name (e.g. never write "recommends SMS because
+  SMS is appropriate").
+- If retry count or customer payment history influenced the decision, mention it.
 `;
 }

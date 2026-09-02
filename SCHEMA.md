@@ -32,11 +32,12 @@ _Also has `merchant` (ObjectId → User) — every collection below except `User
 | razorpay.paymentLinkId / paymentLinkUrl / paymentId / isLive | | only populated for the real demo payment(s) |
 | retryCount | Number | |
 | recoveredAmount | Number | paise |
+| recoveryLink | String | the customer-app URL sent via SMS — points at CUSTOMER_APP_URL, not the merchant app |
 | isSynthetic | Boolean | false only for the real demo case |
 
 ## RecoveryAttempt
-One row per action taken on a payment. `decidedBy: "rules" | "ai"` is what powers the
-baseline-vs-AI-assisted comparison on the dashboard.
+One row per action taken on a payment. `decidedBy: "rules" | "ai"` records which
+engine actually made the call, kept for audit purposes.
 
 ## AIDecision
 What the LLM recommended, its reasoning, and what the backend actually allowed

@@ -2,6 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+:root {
+  --ink: 15 23 42;          /* near-black, not pure black */
+  --bg: 250 250 252;
+  --surface: 255 255 255;
+  --border: 226 229 235;
+  --accent: 79 70 229;      /* indigo — swap to your brand color */
+  --ring: 79 70 229;
+  --shadow-color: 220 220 230;
+}
+html.dark {
+  --ink: 237 238 242;
+  --bg: 10 11 15;
+  --surface: 17 18 23;
+  --border: 32 34 40;
+  --accent: 129 140 248;
+  --ring: 129 140 248;
+  --shadow-color: 0 0 0;
+}
+
 body {
-  font-feature-settings: "tnum";
+  background-color: rgb(var(--bg));
+  color: rgb(var(--ink));
+  font-feature-settings: "tnum", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.011em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Scope transitions — avoid the universal * selector, it silently
+   tanks perf on any page with more than a handful of nodes and
+   causes jank on layout-affecting properties. */
+button, a, input, textarea, select, [class*="transition"] {
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Premium focus ring — visible, not the default browser outline */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--ring) / 0.55);
+  border-radius: 8px;
+}
+
+/* Custom selection color instead of default blue */
+::selection {
+  background: rgb(var(--accent) / 0.25);
+  color: rgb(var(--ink));
+}
+
+/* Thin, quiet scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border));
+  border-radius: 999px;
+  border: 2px solid rgb(var(--bg));
+}
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--ink) / 0.25); }
+
+/* Elevation system — layer these as utility classes (.shadow-soft, .shadow-lift) */
+.shadow-soft {
+  box-shadow: 0 1px 2px rgb(var(--shadow-color) / 0.06),
+    0 1px 1px rgb(var(--shadow-color) / 0.04);
+}
+.shadow-lift {
+  box-shadow: 0 4px 12px rgb(var(--shadow-color) / 0.08),
+    0 2px 4px rgb(var(--shadow-color) / 0.06);
+}
+.shadow-lift:hover {
+  box-shadow: 0 8px 24px rgb(var(--shadow-color) / 0.12),
+    0 2px 6px rgb(var(--shadow-color) / 0.08);
+  transform: translateY(-1px);
+}
+
+/* Card surface — the workhorse for panels, sidebars, modals */
+.surface {
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--border));
 }

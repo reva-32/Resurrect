@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "../index.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -28,57 +29,58 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-paper flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <Link to="/" className="font-display font-extrabold text-lg tracking-tight block text-center mb-8">
-          Recovery<span className="text-accent">.ai</span>
+           <span className="text-accent">Resurrect</span>
         </Link>
-        <div className="bg-white rounded-2xl border border-black/5 shadow-soft p-8">
+        <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-8">
           <h1 className="font-display text-xl font-bold mb-1">Create your account</h1>
-          <p className="text-sm text-ink/50 mb-6">Set up your merchant dashboard in a minute.</p>
+          <p className="text-sm text-ink/50 dark:text-white/50 mb-6">Set up your merchant dashboard in a minute.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1.5">Business name</label>
+              <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Business name</label>
               <input
                 required
                 value={form.businessName}
                 onChange={update("businessName")}
-                className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 placeholder="Acme Retail Pvt Ltd"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1.5">Your name</label>
+              <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Your name</label>
               <input
                 required
                 value={form.name}
                 onChange={update("name")}
-                className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 placeholder="Jane Doe"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1.5">Email</label>
+              <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Email</label>
               <input
                 type="email"
                 required
                 value={form.email}
                 onChange={update("email")}
-                className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 placeholder="you@business.com"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1.5">Password</label>
+              <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Password</label>
               <input
                 type="password"
+                pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$"
                 required
-                minLength={6}
+                minLength={8}
                 value={form.password}
                 onChange={update("password")}
-                className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-                placeholder="At least 6 characters"
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+                placeholder="8+ chars, number & special character"
               />
             </div>
 
@@ -87,13 +89,13 @@ export default function Signup() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full bg-ink text-white rounded-xl py-2.5 text-sm font-medium hover:bg-ink/90 transition disabled:opacity-50"
+              className="w-full bg-ink dark:bg-white text-white dark:text-ink rounded-xl py-2.5 text-sm font-medium hover:bg-ink/90 dark:hover:bg-white/90 transition disabled:opacity-50"
             >
               {busy ? "Creating account…" : "Create account"}
             </button>
           </form>
         </div>
-        <p className="text-center text-sm text-ink/50 mt-6">
+        <p className="text-center text-sm text-ink/50 dark:text-white/50 mt-6">
           Already have an account?{" "}
           <Link to="/login" className="text-accent font-medium hover:underline">
             Log in
