@@ -34,8 +34,11 @@ import {
   ChevronRight,
   Clock3,
   BrainCircuit,
+  MessageCircle,
+  Send,
+  X,
 } from "lucide-react";
-import { getMetrics, getPayments, getPayment, runRecoveryBulk, runRecoveryOne, seedData } from "../api/client";
+import { getMetrics, getPayments, getPayment, runRecoveryBulk, runRecoveryOne, seedData, getInsights, askAssistant } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -569,6 +572,168 @@ function PaymentDetail({ paymentId, onClose, onChanged }) {
   );
 }
 
+
+function LanguageToggle({ language, onChange }) {
+  return (
+    <div className="inline-flex rounded-lg bg-black/5 dark:bg-white/10 p-0.5">
+      <button
+        type="button"
+        onClick={() => onChange("en")}
+        className={`px-2.5 py-1 text-xs rounded-md font-medium ${language === "en" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50"}`}
+      >
+        English
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("hi")}
+        className={`px-2.5 py-1 text-xs rounded-md font-medium ${language === "hi" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50"}`}
+      >
+        हिन्दी
+      </button>
+    </div>
+  );
+}
+
+function DashboardInsights({ language, onLanguageChange, onRefresh, data, loading }) {
+  return (
+    <section className="mb-8 bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark overflow-hidden">
+      <div className="px-6 py-5 border-b border-black/5 dark:border-white/10 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles size={17} className="text-accent2" />
+            <h2 className="font-display font-bold text-lg">AI Insights & Solutions</h2>
+          </div>
+          <p className="text-sm text-black/50 dark:text-white/40 mt-1">A grounded explanation of the dashboard data and what the merchant should do next.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <LanguageToggle language={language} onChange={onLanguageChange} />
+          <button type="button" onClick={onRefresh} disabled={loading} className="text-xs px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 font-medium disabled:opacity-50">
+            {loading ? "Updating…" : "Refresh insights"}
+          </button>
+        </div>
+      </div>
+      <div className="p-6">
+        {loading && !data ? (
+          <div className="text-sm text-black/40 dark:text-white/40">Reading the latest dashboard data…</div>
+        ) : data ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="lg:col-span-2 rounded-xl bg-accent/5 border border-accent/10 p-4">
+              <div className="text-xs uppercase tracking-wide text-accent font-semibold mb-2">Current scenario</div>
+              <div className="text-sm leading-6 whitespace-pre-wrap">{data.content}</div>
+            </div>
+            <div className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 p-4">
+              <div className="text-xs uppercase tracking-wide text-black/45 dark:text-white/45 font-semibold mb-2">Dashboard cards explained</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-2 text-xs leading-5 text-black/65 dark:text-white/65">
+                <div><span className="font-semibold">Revenue at risk:</span> value still tied to unresolved payments.</div>
+                <div><span className="font-semibold">Recovered:</span> value from payments currently marked recovered.</div>
+                <div><span className="font-semibold">Recovery rate:</span> successful recovery attempts divided by successful + failed attempts.</div>
+                <div><span className="font-semibold">Failed payments:</span> payments not currently in recovered status.</div>
+                <div><span className="font-semibold">SMS sent:</span> recovery SMS records created for this merchant.</div>
+                <div><span className="font-semibold">Retries:</span> recorded retry recovery attempts.</div>
+                <div><span className="font-semibold">Successful recoveries:</span> recovery attempts whose outcome is success.</div>
+                <div><span className="font-semibold">Failed recoveries:</span> recovery attempts whose outcome is failure.</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-recovered/5 border border-recovered/15 p-4">
+              <div className="text-xs uppercase tracking-wide text-recovered font-semibold mb-2">Important distinction</div>
+              <p className="text-sm leading-6 text-black/65 dark:text-white/65">A successful recovery attempt is not automatically the same as a unique recovered payment. Use the payment status/recovered value for actual recovered revenue.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-black/40 dark:text-white/40">Insights are unavailable right now. The dashboard numbers remain the source of truth.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FloatingAssistant() {
+  const [open, setOpen] = useState(false);
+  const [language, setLanguage] = useState("en");
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const suggestions = language === "hi"
+    ? ["आज क्या हुआ?", "किसे priority recovery दें?", "Recovery rate क्यों कम है?", "मुझे अगला क्या करना चाहिए?"]
+    : ["What happened today?", "Who should get priority recovery?", "Why is recovery rate low?", "What should I do next?"];
+
+  async function submit(text = question) {
+    const q = String(text || "").trim();
+    if (!q || busy) return;
+    setQuestion("");
+    setMessages((prev) => [...prev, { role: "user", text: q }]);
+    setBusy(true);
+    try {
+      const result = await askAssistant(q, language);
+      setMessages((prev) => [...prev, { role: "assistant", text: result.answer, source: result.generatedBy }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", text: language === "hi" ? "अभी dashboard assistant उपलब्ध नहीं है। Dashboard के numbers को source of truth मानें।" : "The dashboard assistant is unavailable right now. Please use the dashboard numbers as the source of truth." }]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function changeLanguage(next) {
+    setLanguage(next);
+    setMessages([]);
+  }
+
+  return (
+    <>
+      {open && (
+        <div className="fixed right-5 bottom-24 z-[55] w-[min(390px,calc(100vw-24px))] bg-white dark:bg-panel border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0"><BrainCircuit size={17} /></div>
+              <div className="min-w-0">
+                <div className="font-display font-bold text-sm">Resurrect Copilot</div>
+                <div className="text-[11px] text-black/40 dark:text-white/40">Answers from your dashboard data</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <LanguageToggle language={language} onChange={changeLanguage} />
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"><X size={17} /></button>
+            </div>
+          </div>
+
+          <div className="h-[360px] overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 && (
+              <div>
+                <div className="rounded-xl bg-accent/5 border border-accent/10 p-3 text-sm leading-5 mb-3">
+                  {language === "hi" ? "मैं dashboard के live data से stats समझा सकता हूँ, patterns बता सकता हूँ और current scenario के लिए action सुझा सकता हूँ।" : "I can explain your live dashboard stats, identify patterns, and suggest actions for the current scenario."}
+                </div>
+                <div className="space-y-2">
+                  {suggestions.map((item) => <button key={item} onClick={() => submit(item)} className="w-full text-left text-xs px-3 py-2.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/5">{item}</button>)}
+                </div>
+              </div>
+            )}
+            {messages.map((message, index) => (
+              <div key={`${message.role}-${index}`} className={message.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                <div className={`max-w-[88%] rounded-xl px-3 py-2.5 text-sm leading-5 whitespace-pre-wrap ${message.role === "user" ? "bg-ink dark:bg-white text-white dark:text-ink" : "bg-black/[0.04] dark:bg-white/[0.06]"}`}>
+                  {message.text}
+                  {message.source && <div className="mt-1.5 text-[10px] opacity-50">{message.source === "dashboard-data" ? "Dashboard data" : "Grounded AI"}</div>}
+                </div>
+              </div>
+            ))}
+            {busy && <div className="text-xs text-black/40 dark:text-white/40">{language === "hi" ? "Dashboard data देख रहा हूँ…" : "Reading dashboard data…"}</div>}
+          </div>
+
+          <div className="p-3 border-t border-black/5 dark:border-white/10">
+            <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="flex items-center gap-2">
+              <input value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={500} placeholder={language === "hi" ? "Dashboard के बारे में पूछें…" : "Ask about your dashboard…"} className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-panel2 text-sm outline-none focus:ring-2 focus:ring-accent/20" />
+              <button type="submit" disabled={!question.trim() || busy} className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center disabled:opacity-40"><Send size={16} /></button>
+            </form>
+          </div>
+        </div>
+      )}
+      <button onClick={() => setOpen((value) => !value)} aria-label="Open Resurrect Copilot" title="Resurrect Copilot" className="fixed right-5 bottom-5 z-[56] w-14 h-14 rounded-full bg-ink dark:bg-white text-white dark:text-ink shadow-2xl flex items-center justify-center hover:scale-[1.03] transition-transform">
+        {open ? <X size={21} /> : <MessageCircle size={22} />}
+      </button>
+    </>
+  );
+}
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [metrics, setMetrics] = useState(null);
@@ -578,6 +743,9 @@ export default function Dashboard() {
   const [running, setRunning] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [insightLanguage, setInsightLanguage] = useState("en");
+  const [insights, setInsights] = useState(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     const [m, p] = await Promise.all([getMetrics(), getPayments(filter || undefined)]);
@@ -595,11 +763,26 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [refresh]);
 
+  const refreshInsights = useCallback(async (language = insightLanguage) => {
+    setInsightsLoading(true);
+    try {
+      const result = await getInsights(language);
+      setInsights(result);
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [insightLanguage]);
+
+  useEffect(() => {
+    refreshInsights();
+  }, [refreshInsights]);
+
   async function handleStartRecovery() {
     setRunning(true);
     try {
       await runRecoveryBulk(true);
       await refresh();
+      await refreshInsights();
     } finally {
       setRunning(false);
     }
@@ -610,6 +793,7 @@ export default function Dashboard() {
     try {
       await seedData();
       await refresh();
+      await refreshInsights();
     } finally {
       setSeeding(false);
     }
@@ -694,6 +878,13 @@ export default function Dashboard() {
             </div>
 
             <AnalyticsCharts metrics={metrics} />
+            <DashboardInsights
+              language={insightLanguage}
+              onLanguageChange={setInsightLanguage}
+              onRefresh={() => refreshInsights()}
+              data={insights}
+              loading={insightsLoading}
+            />
           </>
         )}
 
@@ -737,6 +928,7 @@ export default function Dashboard() {
         <PaymentDetail paymentId={selectedId} onClose={() => setSelectedId(null)} onChanged={refresh} />
       )}
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <FloatingAssistant />
     </div>
   );
 }

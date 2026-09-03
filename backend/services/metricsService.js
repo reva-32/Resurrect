@@ -15,6 +15,7 @@ export async function getDashboardMetrics(merchantId) {
     totalFailed,
     revenueAtRiskAgg,
     recoveredAgg,
+    recoveredPaymentCount,
     smsSentCount,
     retryAttemptsCount,
     successfulRecoveries,
@@ -31,6 +32,7 @@ export async function getDashboardMetrics(merchantId) {
       { $match: { merchant, status: "recovered" } },
       { $group: { _id: null, total: { $sum: "$recoveredAmount" } } },
     ]),
+    Payment.countDocuments({ merchant, status: "recovered" }),
     SMSLog.countDocuments({ merchant }),
     RecoveryAttempt.countDocuments({ merchant, action: "retry" }),
     RecoveryAttempt.countDocuments({ merchant, outcome: "success" }),
@@ -121,6 +123,7 @@ export async function getDashboardMetrics(merchantId) {
   return {
     revenueAtRisk,
     totalRecovered,
+    recoveredPaymentCount,
     recoveryRate,
     totalFailedPayments: totalFailed,
     smsSentCount,

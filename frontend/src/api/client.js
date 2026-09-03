@@ -18,6 +18,8 @@ export const getMe = () => client.get("/auth/me").then((r) => r.data);
 
 // --- Dashboard / payments / recovery ---
 export const getMetrics = () => client.get("/dashboard/metrics").then((r) => r.data);
+export const getInsights = (language = "en") => client.get("/dashboard/insights", { params: { language } }).then((r) => r.data);
+export const askAssistant = (question, language = "en") => client.post("/dashboard/assistant", { question, language }).then((r) => r.data);
 export const seedData = (payload = {}) => client.post("/dashboard/seed", payload).then((r) => r.data);
 export const getPayments = (status) =>
   client.get("/payments", { params: status ? { status } : {} }).then((r) => r.data);
