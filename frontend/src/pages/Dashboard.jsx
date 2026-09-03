@@ -1,6 +1,20 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import "../index.css";
-import { ResponsiveContainer, FunnelChart, Funnel, LabelList, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  FunnelChart,
+  Funnel,
+  LabelList,
+  Tooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  BarChart,
+  Bar,
+  Legend,
+} from "recharts";
 import { Link } from "react-router-dom";
 import {
   LogOut,
@@ -15,6 +29,11 @@ import {
   MousePointerClick,
   Sparkles,
   ListChecks,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  BrainCircuit,
 } from "lucide-react";
 import { getMetrics, getPayments, getPayment, runRecoveryBulk, runRecoveryOne, seedData } from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -85,6 +104,206 @@ function RecoveryFunnel({ metrics }) {
             </Funnel>
           </FunnelChart>
         </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+
+function AnalyticsCharts({ metrics }) {
+  const analytics = metrics?.analytics || {};
+  const trend = analytics.recoveryTrend || [];
+  const strategy = analytics.strategyPerformance || [];
+
+  const formatDay = (value) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+    });
+
+  const ChartCard = ({ title, description, children }) => (
+    <div className="min-w-0 bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-5">
+      <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium mb-1">
+        {title}
+      </div>
+      <div className="text-sm text-black/50 dark:text-white/40 mb-4">{description}</div>
+      <div className="h-60 min-w-0">{children}</div>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="min-w-0">
+        <RecoveryFunnel metrics={metrics} />
+      </div>
+
+      <ChartCard
+        title="Recovery over time"
+        description="Live failures and successful recoveries across the last 7 days."
+      >
+        {trend.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trend} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.08} />
+              <XAxis dataKey="date" tickFormatter={formatDay} tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip labelFormatter={formatDay} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="failed" name="Failed" stroke="#C24444" strokeWidth={2.5} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="recovered" name="Recovered" stroke="#2F7A4F" strokeWidth={2.5} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-sm text-black/40 dark:text-white/40">
+            Recovery trend data will appear here automatically.
+          </div>
+        )}
+      </ChartCard>
+
+      <ChartCard
+        title="Recovery by strategy"
+        description="Compare recovery actions with their successful outcomes."
+      >
+        {strategy.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={strategy} margin={{ top: 5, right: 8, left: -12, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.08} />
+              <XAxis dataKey="strategy" tick={{ fontSize: 10 }} interval={0} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="attempted" name="Attempts" fill="#6C4FD9" radius={[5, 5, 0, 0]} />
+              <Bar dataKey="successful" name="Successful" fill="#2F7A4F" radius={[5, 5, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-sm text-black/40 dark:text-white/40">
+            Start a recovery to see strategy performance.
+          </div>
+        )}
+      </ChartCard>
+    </div>
+  );
+}
+
+function UserGuide({ open, onClose }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (open) setStep(0);
+  }, [open]);
+
+  if (!open) return null;
+
+  const steps = [
+    {
+      title: "A payment fails",
+      icon: AlertTriangle,
+      body: "Resurrect detects the failed payment and keeps it visible in the merchant dashboard instead of leaving the merchant to track it manually.",
+      tip: "Start Recovery to process eligible failed payments.",
+    },
+    {
+      title: "AI chooses the next action",
+      icon: BrainCircuit,
+      body: "The AI evaluates the payment context and recommends a recovery action. A backend safety policy still checks the recommendation before anything is executed.",
+      tip: "Open a payment to see why the action was selected.",
+    },
+    {
+      title: "Recovery is automated",
+      icon: MessageSquare,
+      body: "Depending on the decision, Resurrect can retry a transient failure or send a recovery message with a payment link. Synthetic data uses the simulator; the live demo customer uses Razorpay.",
+      tip: "SMS messages and recovery attempts are recorded in the payment timeline.",
+    },
+    {
+      title: "Razorpay confirms success",
+      icon: CheckCircle2,
+      body: "When the customer completes a real Razorpay payment, the webhook updates the payment automatically. You do not need to refresh or mark it recovered manually.",
+      tip: "A recovered payment shows its amount and recovery event in the audit trail.",
+    },
+    {
+      title: "Monitor and improve",
+      icon: Clock3,
+      body: "Use the cards and charts to understand failures, recoveries, SMS activity, and which strategies are performing best. The dashboard refreshes automatically.",
+      tip: "Use the data here to decide where the merchant should focus next.",
+    },
+  ];
+
+  const current = steps[step];
+  const Icon = current.icon;
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/40 dark:bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-panel rounded-3xl border border-black/5 dark:border-white/10 shadow-2xl max-w-2xl w-full overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-black/5 dark:border-white/10">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-accent font-semibold">Resurrect guide</div>
+            <div className="font-display text-xl font-bold mt-1">How payment recovery works</div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/15"
+            aria-label="Close guide"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-6 pt-5">
+          <div className="flex gap-1.5 mb-6">
+            {steps.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setStep(index)}
+                className={`h-1.5 flex-1 rounded-full ${index === step ? "bg-accent" : "bg-black/10 dark:bg-white/10"}`}
+                aria-label={`Go to guide step ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          <div className="flex gap-4 items-start min-h-[210px]">
+            <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
+              <Icon size={22} />
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-black/40 dark:text-white/40 font-medium">
+                Step {step + 1} of {steps.length}
+              </div>
+              <h3 className="font-display text-2xl font-bold mt-1 mb-3">{current.title}</h3>
+              <p className="text-sm leading-6 text-black/65 dark:text-white/65">{current.body}</p>
+              <div className="mt-5 rounded-xl bg-accent/5 border border-accent/15 px-4 py-3 text-sm">
+                <span className="font-semibold">Tip:</span> {current.tip}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t border-black/5 dark:border-white/10 flex justify-between items-center">
+          <button
+            disabled={step === 0}
+            onClick={() => setStep((value) => Math.max(0, value - 1))}
+            className="inline-flex items-center gap-1 text-sm px-3 py-2 rounded-xl bg-black/5 dark:bg-white/10 font-medium disabled:opacity-30"
+          >
+            <ChevronLeft size={16} /> Back
+          </button>
+          {step < steps.length - 1 ? (
+            <button
+              onClick={() => setStep((value) => Math.min(steps.length - 1, value + 1))}
+              className="inline-flex items-center gap-1 text-sm px-4 py-2 rounded-xl bg-accent text-white font-medium hover:bg-accent/90"
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="text-sm px-4 py-2 rounded-xl bg-ink dark:bg-white text-white dark:text-ink font-medium"
+            >
+              Done
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -358,6 +577,7 @@ export default function Dashboard() {
   const [selectedId, setSelectedId] = useState(null);
   const [running, setRunning] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const [m, p] = await Promise.all([getMetrics(), getPayments(filter || undefined)]);
@@ -415,6 +635,14 @@ export default function Dashboard() {
               {running ? "Processing…" : "Start Recovery"}
             </button>
             <ThemeToggle />
+            <button
+              onClick={() => setGuideOpen(true)}
+              className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2"
+              title="How Resurrect works"
+              aria-label="How Resurrect works"
+            >
+              <HelpCircle size={19} />
+            </button>
             <Link to="/settings" className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2" title="Business settings">
               <SettingsIcon size={18} />
             </Link>
@@ -465,9 +693,7 @@ export default function Dashboard() {
               <StatCard icon={XCircle} label="Failed recoveries" value={metrics.failedRecoveries} tone="risk" />
             </div>
 
-            <div className="mb-6">
-              <RecoveryFunnel metrics={metrics} />
-            </div>
+            <AnalyticsCharts metrics={metrics} />
           </>
         )}
 
@@ -510,6 +736,7 @@ export default function Dashboard() {
       {selectedId && (
         <PaymentDetail paymentId={selectedId} onClose={() => setSelectedId(null)} onChanged={refresh} />
       )}
+      <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }
