@@ -37,12 +37,17 @@ import {
   MessageCircle,
   Send,
   X,
+  ListOrdered,
+  PieChart,
 } from "lucide-react";
 import { getMetrics, getPayments, getPayment, runRecoveryBulk, runRecoveryOne, seedData, getInsights, askAssistant } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
 
-const rupees = (paise) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+// Indian digit grouping with two decimal places everywhere, e.g. ₹5,00,000.00.
+// Values stay numeric (paise) internally — this only controls display text.
+const rupees = (paise) =>
+  `₹${((paise || 0) / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (n) => `${Math.round((n || 0) * 100)}%`;
 
 // Human, merchant-facing labels for the raw enum values stored in Mongo —
@@ -594,6 +599,67 @@ function LanguageToggle({ language, onChange }) {
   );
 }
 
+function FailureBreakdownList({ items, language }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-sm text-black/40 dark:text-white/40">
+        {language === "hi" ? "अभी कोई failed payment नहीं है।" : "No currently-failing payments to break down."}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {items.map((f) => (
+        <div key={f.reason}>
+          <div className="flex items-center justify-between text-sm mb-1">
+            <span className="font-medium">{f.label}</span>
+            <span className="text-black/50 dark:text-white/40 text-xs">
+              {f.count} · {f.percentage}% · {f.revenueImpactFormatted}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden mb-1.5">
+            <div className="h-full bg-accent2 rounded-full" style={{ width: `${Math.max(f.percentage, 3)}%` }} />
+          </div>
+          <div className="text-xs leading-5 text-black/60 dark:text-white/50">{f.advice}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PriorityQueueList({ items, language }) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-sm text-black/40 dark:text-white/40">
+        {language === "hi" ? "अभी prioritize करने के लिए कोई failed payment नहीं है।" : "No failed payments currently need prioritization."}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {items.slice(0, 6).map((p) => (
+        <div key={p.paymentId} className="flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full bg-ink/10 dark:bg-white/10 text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
+            {p.rank}
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+              {p.customerName}
+              <span className="text-accent font-semibold">{p.amountFormatted}</span>
+              {p.repeatedFailures && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold/15 text-gold font-medium">
+                  {language === "hi" ? "manual follow-up" : "manual follow-up"}
+                </span>
+              )}
+            </div>
+            <div className="text-xs leading-5 text-black/55 dark:text-white/45 mt-0.5">{p.recommendedAction}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DashboardInsights({ language, onLanguageChange, onRefresh, data, loading }) {
   return (
     <section className="mb-8 bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark overflow-hidden">
@@ -618,9 +684,41 @@ function DashboardInsights({ language, onLanguageChange, onRefresh, data, loadin
         ) : data ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="lg:col-span-2 rounded-xl bg-accent/5 border border-accent/10 p-4">
-              <div className="text-xs uppercase tracking-wide text-accent font-semibold mb-2">Current scenario</div>
+              <div className="text-xs uppercase tracking-wide text-accent font-semibold mb-2">
+                {language === "hi" ? "क्या हुआ और समाधान" : "Current scenario"}
+              </div>
               <div className="text-sm leading-6 whitespace-pre-wrap">{data.content}</div>
             </div>
+
+            <div className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <PieChart size={14} className="text-accent2" />
+                <div className="text-xs uppercase tracking-wide text-black/45 dark:text-white/45 font-semibold">
+                  {language === "hi" ? "Payments क्यों fail हो रहे हैं" : "Why payments are failing"}
+                </div>
+              </div>
+              <FailureBreakdownList items={data.failureBreakdown} language={language} />
+            </div>
+
+            <div className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ListOrdered size={14} className="text-accent2" />
+                <div className="text-xs uppercase tracking-wide text-black/45 dark:text-white/45 font-semibold">
+                  {language === "hi" ? "किसे प्राथमिकता दें" : "Who to prioritize"}
+                </div>
+              </div>
+              <PriorityQueueList items={data.priorityQueue} language={language} />
+            </div>
+
+            {data.strategyNote && (
+              <div className="lg:col-span-2 rounded-xl bg-accent2/5 border border-accent2/15 p-4">
+                <div className="text-xs uppercase tracking-wide text-accent2 font-semibold mb-2">
+                  {language === "hi" ? "Strategy performance" : "Strategy performance"}
+                </div>
+                <p className="text-sm leading-6 text-black/70 dark:text-white/70">{data.strategyNote}</p>
+              </div>
+            )}
+
             <div className="rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 p-4">
               <div className="text-xs uppercase tracking-wide text-black/45 dark:text-white/45 font-semibold mb-2">Dashboard cards explained</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-2 text-xs leading-5 text-black/65 dark:text-white/65">
@@ -636,7 +734,7 @@ function DashboardInsights({ language, onLanguageChange, onRefresh, data, loadin
             </div>
             <div className="rounded-xl bg-recovered/5 border border-recovered/15 p-4">
               <div className="text-xs uppercase tracking-wide text-recovered font-semibold mb-2">Important distinction</div>
-              <p className="text-sm leading-6 text-black/65 dark:text-white/65">A successful recovery attempt is not automatically the same as a unique recovered payment. Use the payment status/recovered value for actual recovered revenue.</p>
+              <p className="text-sm leading-6 text-black/65 dark:text-white/65">A successful recovery attempt is not automatically the same as a unique recovered payment. Use the payment status/recovered value for actual recovered revenue.{!data.recoveryRateReliable && (language === "hi" ? " अभी recovery rate reliably calculate करने लायक data नहीं है, इसलिए इसे misleading 0% के बजाय \"not enough data\" समझें।" : " There isn't enough attempt data yet to calculate a reliable recovery rate — treat it as \"not enough data\" rather than a misleading 0%.")}</p>
             </div>
           </div>
         ) : (
@@ -655,8 +753,8 @@ function FloatingAssistant() {
   const [busy, setBusy] = useState(false);
 
   const suggestions = language === "hi"
-    ? ["आज क्या हुआ?", "किसे priority recovery दें?", "Recovery rate क्यों कम है?", "मुझे अगला क्या करना चाहिए?"]
-    : ["What happened today?", "Who should get priority recovery?", "Why is recovery rate low?", "What should I do next?"];
+    ? ["आज क्या हुआ?", "मेरे payments क्यों fail हो रहे हैं?", "किसे पहले संपर्क करूँ?", "insufficient-fund failures कैसे कम करूँ?", "कौन सी recovery strategy काम कर रही है?", "मुझे अगला क्या करना चाहिए?"]
+    : ["What happened today?", "Why are my payments failing?", "Who should I contact first?", "How can I reduce insufficient-fund failures?", "Which recovery strategy is working?", "What should I do next?"];
 
   async function submit(text = question) {
     const q = String(text || "").trim();
@@ -682,7 +780,7 @@ function FloatingAssistant() {
   return (
     <>
       {open && (
-        <div className="fixed right-5 bottom-24 z-[55] w-[min(390px,calc(100vw-24px))] bg-white dark:bg-panel border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div className="fixed right-5 bottom-24 z-[55] w-[min(420px,calc(100vw-24px))] bg-white dark:bg-panel border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-black/5 dark:border-white/10 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0"><BrainCircuit size={17} /></div>
@@ -697,7 +795,7 @@ function FloatingAssistant() {
             </div>
           </div>
 
-          <div className="h-[360px] overflow-y-auto p-4 space-y-3">
+          <div className="h-[420px] overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
               <div>
                 <div className="rounded-xl bg-accent/5 border border-accent/10 p-3 text-sm leading-5 mb-3">
@@ -712,7 +810,15 @@ function FloatingAssistant() {
               <div key={`${message.role}-${index}`} className={message.role === "user" ? "flex justify-end" : "flex justify-start"}>
                 <div className={`max-w-[88%] rounded-xl px-3 py-2.5 text-sm leading-5 whitespace-pre-wrap ${message.role === "user" ? "bg-ink dark:bg-white text-white dark:text-ink" : "bg-black/[0.04] dark:bg-white/[0.06]"}`}>
                   {message.text}
-                  {message.source && <div className="mt-1.5 text-[10px] opacity-50">{message.source === "dashboard-data" ? "Dashboard data" : "Grounded AI"}</div>}
+                  {message.source && (
+                    <div className="mt-1.5 text-[10px] opacity-50">
+                      {{
+                        "dashboard-data": "Dashboard data",
+                        "gemini-grounded": "Grounded AI",
+                        "grounded-fallback": "Grounded fallback (AI unavailable)",
+                      }[message.source] || "Grounded AI"}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
