@@ -375,6 +375,82 @@ const REASON_KEYWORDS = [
   { reason: "network_error", re: /network error|नेटवर्क/i },
 ];
 
+// ---------------------------------------------------------------------------
+// General merchant business questions — not about THIS dashboard's data, but
+// still legitimate things a merchant running a payments/recovery business
+// would ask (customer relationships, reach/growth, trust, communication,
+// refunds, pricing). Answered with genuine practical guidance, deterministically
+// and bilingually, with zero LLM cost for the common cases. Anything outside
+// this scope (entertainment, trivia, unrelated general knowledge) is declined
+// rather than guessed at — see isLikelyOffTopic()/offTopicDecline() below.
+// ---------------------------------------------------------------------------
+const BUSINESS_TOPICS = [
+  {
+    key: "customer_relationships",
+    re: /customer relationship|retain customers?|customer retention|loyal(ty)? customers?|repeat customers?|ग्राहक.*(संबंध|बनाए रखना|loyalty)|customer loyalty/i,
+    en: "Strong customer relationships come from clear, honest communication (especially around a failed payment), a quick response when something goes wrong, small personal touches like using their name, and rewarding loyalty — e.g. priority support or a small discount for customers who've paid successfully before. On recovery specifically, treating loyal/repeat customers with a courteous personal follow-up instead of repeated automated SMS tends to protect the relationship far better than pure automation.",
+    hi: "मजबूत ग्राहक संबंध साफ़ और ईमानदार संवाद से बनते हैं (खासकर payment fail होने पर), गड़बड़ी होने पर तेज़ response से, नाम से बुलाने जैसे छोटे personal touches से, और loyalty को reward करने से — जैसे पहले successful payments कर चुके ग्राहकों को priority support या छोटी discount देना। Recovery में, loyal/repeat ग्राहकों के साथ बार-बार automated SMS की जगह विनम्र personal follow-up रिश्ते को बेहतर बनाए रखता है।",
+  },
+  {
+    key: "customer_reach_growth",
+    re: /customer reach|increase (my )?reach|grow(ing)? (my )?customers?|new customers?|customer acquisition|marketing|ग्राहक.*(बढ़ाना|reach|पहुंच)|नए ग्राहक/i,
+    en: "To grow reach: lean on channels your existing paying customers already trust — referrals, WhatsApp/SMS updates, and reviews from customers whose payments you successfully recovered (they're already warm leads). Pair that with clear, simple checkout (fewer failed/abandoned payments means more of the traffic you already have converts), and consistent, low-friction follow-up messaging rather than one-off blasts.",
+    hi: "Reach बढ़ाने के लिए: उन channels का उपयोग करें जिन पर आपके मौजूदा ग्राहक पहले से भरोसा करते हैं — referrals, WhatsApp/SMS updates, और उन ग्राहकों के reviews जिनका payment आपने successfully recover किया (वे पहले से warm leads हैं)। साथ ही checkout को साफ और आसान रखें (कम failed/abandoned payments का मतलब है मौजूदा traffic से ज़्यादा conversion), और एक बार के message की जगह लगातार, कम-friction वाला follow-up रखें।",
+  },
+  {
+    key: "trust_credibility",
+    re: /\btrust\b|credibilit|trustworthy|ग्राहकों का भरोसा|विश्वास|भरोसा/i,
+    en: "Trust is built by being transparent about what happened and why (e.g. telling a customer plainly that their card was declined, not just that \"something went wrong\"), never over-messaging, using your verified business name/number consistently on every recovery SMS or link, and following through — if you say a link is safe, make sure it actually goes to a branded, secure checkout page.",
+    hi: "भरोसा तब बनता है जब आप साफ़-साफ़ बताते हैं कि क्या हुआ और क्यों (जैसे यह बताना कि card decline हुआ, सिर्फ \"कुछ गड़बड़ हुई\" नहीं), बहुत ज़्यादा messages न भेजें, हर recovery SMS/link पर अपना verified business नाम/नंबर लगातार इस्तेमाल करें, और जो कहें वह निभाएँ — अगर कहा कि link safe है, तो वह वाकई branded, secure checkout page पर ले जाए।",
+  },
+  {
+    key: "communication_reminders",
+    re: /communicat(e|ion)|reminder message|message (customers?|template)|sms (best|tips|copy)|संवाद|reminder कैसे/i,
+    en: "For payment-recovery communication: keep messages short, name the specific issue (insufficient funds, card declined, etc.) rather than being vague, always include one clear link/action, avoid sending the same reminder repeatedly in a short window, and match the tone to the failure — a gentle nudge for an abandoned checkout, a more direct manual message once a payment has failed multiple times.",
+    hi: "Payment-recovery messages के लिए: छोटे रखें, vague होने के बजाय exact issue बताएं (insufficient funds, card declined, आदि), हमेशा एक clear link/action दें, कम समय में बार-बार वही reminder न भेजें, और tone को failure के हिसाब से रखें — abandoned checkout के लिए हल्का nudge, कई बार fail होने पर ज़्यादा direct manual message।",
+  },
+  {
+    key: "refunds_disputes",
+    re: /refund|dispute|chargeback|रिफंड|विवाद/i,
+    en: "For refunds/disputes: respond quickly and acknowledge the issue before debating it, keep the process as simple as the original payment, and document every step (this dashboard's audit trail is useful here) so there's a clear record if a dispute is escalated. Being fast and fair on refunds tends to protect long-term customer trust more than winning any single dispute.",
+    hi: "Refunds/disputes के लिए: जल्दी respond करें और बहस से पहले समस्या को स्वीकार करें, process को original payment जितना ही सरल रखें, और हर step को document करें (इसके लिए dashboard का audit trail काम आता है) ताकि dispute बढ़ने पर स्पष्ट record रहे। Refunds में तेज़ और निष्पक्ष रहना किसी एक dispute जीतने से ज़्यादा long-term ग्राहक भरोसा बचाता है।",
+  },
+  {
+    key: "pricing_discounts",
+    re: /pricing|discount|price (strategy|psychology)|upsell|cross[- ]?sell|मूल्य|छूट/i,
+    en: "On pricing/discounts: use small, targeted incentives (like a modest discount on the recovery link itself) sparingly for high-value or repeat customers rather than broadly — it protects margins while still nudging a stuck payment through. Round, simple prices and clearly showing the original vs. discounted amount tend to convert better than complex tiered pricing.",
+    hi: "Pricing/discounts के लिए: छोटे, targeted incentives (जैसे recovery link पर हल्की discount) सिर्फ high-value या repeat ग्राहकों के लिए इस्तेमाल करें, सबके लिए नहीं — इससे margin भी बचता है और अटका payment भी आगे बढ़ता है। Round, सरल prices और original vs discounted amount साफ़ दिखाना, जटिल tiered pricing से बेहतर convert करता है।",
+  },
+  {
+    key: "customer_support",
+    re: /customer support|customer service|handle complaints?|ग्राहक सहायता|शिकायत/i,
+    en: "For support: prioritize responses for high-value or repeat customers with a failed/stuck payment (they're the most retention-sensitive), give support staff visibility into why a payment failed so they don't ask the customer to repeat information, and close the loop — let the customer know once their payment is actually confirmed recovered, not just that a link was sent.",
+    hi: "Support के लिए: high-value या repeat ग्राहकों के stuck/failed payment को प्राथमिकता दें (वे सबसे ज़्यादा retention-sensitive होते हैं), support staff को यह दिखाई दे कि payment क्यों fail हुआ ताकि ग्राहक से दोबारा वही जानकारी न पूछनी पड़े, और loop बंद करें — ग्राहक को तभी बताएं जब payment वाकई recovered confirm हो जाए, सिर्फ link भेजने पर नहीं।",
+  },
+];
+
+function businessTopicAnswer(question, language) {
+  const topic = BUSINESS_TOPICS.find((b) => b.re.test(question));
+  if (!topic) return null;
+  return topic[language] || topic.en;
+}
+
+// A conservative, deterministic guess at whether a question is on-topic for
+// this assistant (dashboard data OR general merchant business advice) versus
+// unrelated to running the merchant's business entirely. Used only when
+// Gemini is unavailable — when Gemini IS available, it does this judgment
+// call itself (it's far better at handling arbitrary phrasing), and this is
+// just the safety net for the offline fallback.
+const ON_TOPIC_HINTS = /payment|recovery|customer|merchant|business|dashboard|revenue|refund|checkout|sms|strategy|reach|market|price|discount|support|trust|loyal|retain|churn|complaint|dispute|भुगतान|ग्राहक|व्यापार|व्यवसाय|राजस्व/i;
+
+function offTopicDecline(language) {
+  return t(
+    language,
+    "I can only help with this recovery dashboard or general merchant-business questions — things like customer relationships, growing customer reach, communication, refunds, or pricing. Try asking one of those instead.",
+    "मैं केवल इस recovery dashboard या सामान्य merchant-business सवालों में मदद कर सकता हूँ — जैसे customer relationships, customer reach बढ़ाना, communication, refunds, या pricing। इनमें से कोई सवाल पूछें।"
+  );
+}
+
 function reasonSpecificAnswer(context, reason, language) {
   const entry = context.failureBreakdown.find((f) => f.reason === reason);
   const label = failureLabel(reason, language);
@@ -489,9 +565,30 @@ export async function askDashboardAssistant(merchantId, question, language = "en
     return { language: lang, generatedBy: "dashboard-data", answer: t(lang, `The dashboard shows ${formatINR(m.totalRecovered)} in recovered value.`, `Dashboard में recovered value ${formatINR(m.totalRecovered)} है।`) };
   }
 
-  // 8. Open-ended — grounded Gemini, with the same backend-computed lists so it
-  // narrates rather than invents a ranking or a failure explanation.
-  const prompt = `You are Resurrect's merchant AI copilot. Answer the merchant in ${LANGUAGE_NAMES[lang]} using ONLY this dashboard snapshot. This is a strict grounding rule: do not invent customers, amounts, trends, causes, dates, strategies, or business results. If asked to rank or prioritize customers/payments, use ONLY the supplied "priorityQueue" (already ranked by the backend) — do not compute your own ranking or substitute different names. If the requested fact is not in the snapshot, explicitly say the dashboard does not contain enough information. Do not use CIBIL scores, credit scores, bank statements, or any external financial data — none of that is available or permitted. Keep the answer brief (maximum 6 bullets or 130 words). For business advice, state the observed data first and then the recommendation.
+  // 8. General merchant business questions (not about this dashboard's data,
+  // but still legitimate — customer relationships, reach, trust, refunds,
+  // pricing, support). Curated, deterministic, bilingual, zero LLM cost.
+  const topicAnswer = businessTopicAnswer(q, lang);
+  if (topicAnswer) {
+    return { language: lang, generatedBy: "business-advice", answer: topicAnswer };
+  }
+
+  // 9. Open-ended — grounded Gemini. It can do two things: (a) answer further
+  // dashboard-data questions using ONLY the supplied snapshot, never inventing
+  // a customer/amount/ranking, or (b) answer general merchant-business
+  // questions (customer relationships, growing reach, communication, refunds,
+  // pricing, support, trust) with genuine practical guidance. Anything outside
+  // those two — entertainment, trivia, sports, general knowledge unrelated to
+  // running this business — must be politely declined, not guessed at.
+  const prompt = `You are Resurrect's merchant AI copilot for a payment-recovery dashboard. Reply in ${LANGUAGE_NAMES[lang]}. The merchant may ask two kinds of legitimate questions:
+
+(a) Questions about THIS dashboard's data (failures, recoveries, priorities, strategies, revenue) — answer these using ONLY the supplied JSON snapshot below. This is a strict grounding rule: do not invent customers, amounts, trends, causes, dates, strategies, or business results. If asked to rank or prioritize customers/payments, use ONLY the supplied "priorityQueue" (already ranked by the backend) — do not compute your own ranking or substitute different names. If the requested fact is not in the snapshot, explicitly say the dashboard does not contain enough information.
+
+(b) General business questions relevant to running an online payments/e-commerce business — for example customer relationships, customer retention, growing customer reach, marketing, communication/reminders, refunds, disputes, pricing, or customer support. For these, answer with genuine, practical business guidance from general knowledge. You may reference the merchant's actual dashboard data as supporting context if relevant, but it isn't required.
+
+Politely DECLINE anything outside those two categories — general trivia, entertainment, celebrities, sports, current events, or any topic unrelated to running this merchant's payments/recovery business. Keep a decline brief and suggest the kind of question you can help with instead.
+
+Never use CIBIL scores, credit scores, bank statements, or any external financial data — none of that is available or permitted. Keep every answer brief (maximum 6 bullets or ~130 words).
 
 DASHBOARD SNAPSHOT:
 ${contextForPrompt(context)}
@@ -501,15 +598,22 @@ ${q}`;
   const aiText = await askGemini(prompt);
   if (aiText) return { language: lang, generatedBy: "gemini-grounded", answer: aiText };
 
-  // 9. Gemini unavailable — deterministic, still-useful composed answer. Never empty.
-  const sections = deterministicInsights(context, lang);
-  return {
-    language: lang,
-    generatedBy: "grounded-fallback",
-    answer: t(
-      lang,
-      `I can only answer from the dashboard data available. ${sections.whatHappened} ${sections.whatNext}`,
-      `मैं केवल dashboard के उपलब्ध data पर जवाब दे सकता हूँ। ${sections.whatHappened} ${sections.whatNext}`
-    ),
-  };
+  // 10. Gemini unavailable. Only answer deterministically when the question at
+  // least looks on-topic (dashboard/business keywords) — otherwise decline
+  // rather than guessing, since without Gemini there's no reliable way to
+  // classify arbitrary phrasing as on- or off-topic. Never empty either way.
+  if (ON_TOPIC_HINTS.test(q)) {
+    const sections = deterministicInsights(context, lang);
+    return {
+      language: lang,
+      generatedBy: "grounded-fallback",
+      answer: t(
+        lang,
+        `I can only answer from the dashboard data available right now. ${sections.whatHappened} ${sections.whatNext}`,
+        `मैं अभी केवल dashboard के उपलब्ध data पर जवाब दे सकता हूँ। ${sections.whatHappened} ${sections.whatNext}`
+      ),
+    };
+  }
+
+  return { language: lang, generatedBy: "off-topic", answer: offTopicDecline(lang) };
 }
