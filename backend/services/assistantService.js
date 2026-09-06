@@ -386,82 +386,64 @@ const REASON_KEYWORDS = [
 // ---------------------------------------------------------------------------
 const BUSINESS_TOPICS = [
   {
+    key: "customer_relationships",
+    re: /customer relationship|retain customers?|customer retention|loyal(ty)?|repeat customers?|churn|ग्राहक.*(संबंध|रोकना|बनाए रखना|loyalty)|ग्राहक.*बार-बार/i,
+    en: `For stronger customer relationships, focus on three things: make buying easy, respond quickly when something goes wrong, and give existing customers a reason to return. Segment customers into first-time, repeat, high-value and inactive groups, then give each group a different follow-up. For failed payments, be helpful rather than pushy: explain the issue, provide one clear way to complete payment, and stop repeated automation when a customer has already been contacted several times.`,
+    hi: `ग्राहक relationships बेहतर करने के लिए तीन चीज़ों पर ध्यान दें: खरीदारी आसान रखें, समस्या होने पर जल्दी जवाब दें और existing customers को दोबारा खरीदने का कारण दें। Customers को first-time, repeat, high-value और inactive groups में बाँटें और हर group के लिए अलग follow-up रखें। Failed payment में बार-बार message भेजने के बजाय समस्या समझाएँ, एक clear payment option दें और कई attempts के बाद manual follow-up करें।`,
+  },
+  {
     key: "customer_reach_growth",
-    re: /customer reach|increase (my )?reach|grow(ing)? (my )?customers?|new customers?|customer acquisition|marketing|acquire customers?|get more customers?|ग्राहक.*(बढ़ाना|reach|पहुंच)|नए ग्राहक|ग्राहक.*लाना/i,
-    en: "To increase customer reach, build a simple acquisition loop: ask satisfied customers for referrals, make your business easy to discover on the channels your target buyers already use, and give first-time visitors a clear reason to try you. For a payments business, also track checkout completion and failed/abandoned payments—more traffic is not useful if payment friction loses the new customers you already acquired. Test one channel at a time and compare leads, completed checkouts, and repeat purchases.",
-    hi: "Customer reach बढ़ाने के लिए एक simple acquisition loop बनाएं: satisfied customers से referrals लें, उन channels पर मौजूद रहें जहाँ आपके target buyers पहले से हैं, और first-time visitors को आपको try करने का साफ़ reason दें। Payments business में checkout completion और failed/abandoned payments भी track करें—अगर payment friction नए customers को खो रहा है तो सिर्फ traffic बढ़ाना काफी नहीं है। एक समय में एक channel test करें और leads, completed checkouts और repeat purchases compare करें।",
-  },
-  {
-    key: "conversion_checkout",
-    re: /conversion|convert.*customer|checkout.*(better|improv|optimi)|abandon(ed|ment)? checkout|cart abandon|checkout friction|payment friction|conversion rate/i,
-    en: "Improve conversion by removing friction at checkout: keep the payment flow short, show the final amount clearly, make the available payment methods obvious, and give customers a clear recovery path when a payment fails. For abandoned checkouts, send a timely reminder with the payment link rather than a generic marketing message. Measure checkout starts → successful payments so you know exactly where customers drop.",
-    hi: "Conversion बढ़ाने के लिए checkout का friction कम करें: payment flow छोटा रखें, final amount साफ दिखाएं, available payment methods स्पष्ट रखें और payment fail होने पर clear recovery path दें। Abandoned checkout के लिए generic marketing message की जगह समय पर payment-link reminder भेजें। Checkout starts → successful payments का funnel track करें ताकि पता चले customers कहाँ drop हो रहे हैं।",
-  },
-  {
-    key: "retention_repeat",
-    re: /customer retention|retain customers?|repeat purchase|repeat customers?|churn|returning customers?|ग्राहक.*(बनाए रखना|retention)|दोबारा.*ग्राहक|वापस.*ग्राहक/i,
-    en: "For retention, focus on the period after the first successful purchase: send useful follow-ups, make the next purchase easy, remember customer preferences where appropriate, and resolve payment/support issues quickly. Segment repeat customers separately from first-time buyers so you can reward loyalty without giving the same offer to everyone. Track repeat-purchase rate and time to the next purchase.",
-    hi: "Retention के लिए first successful purchase के बाद का experience बेहतर करें: useful follow-ups भेजें, अगली purchase आसान बनाएं, जहाँ उचित हो customer preferences याद रखें और payment/support issues जल्दी resolve करें। Repeat customers को first-time buyers से अलग segment करें ताकि loyalty को reward किया जा सके और हर customer को वही offer न देना पड़े। Repeat-purchase rate और next purchase तक का time track करें।",
-  },
-  {
-    key: "referrals",
-    re: /referral|refer.*friend|word of mouth|recommend.*business|रेफरल|दोस्त.*बताएं|सिफारिश/i,
-    en: "A practical referral strategy is to ask right after a successful purchase or a support issue that you resolved well. Keep the request specific and make the benefit simple—for example, a small future-order benefit rather than a complicated reward structure. Track referral source and completed purchases, not just referral clicks, so you know whether the program actually brings paying customers.",
-    hi: "Referral strategy के लिए successful purchase या अच्छी तरह resolved support issue के तुरंत बाद referral मांगना बेहतर है। Request specific रखें और benefit simple रखें—जैसे future order पर छोटा benefit, न कि complicated reward structure। सिर्फ referral clicks नहीं, referral source और completed purchases track करें ताकि पता चले कि program वास्तव में paying customers ला रहा है या नहीं।",
-  },
-  {
-    key: "offers_promotions",
-    re: /offer|promotion|promo|coupon|voucher|campaign|sale|discount|छूट|ऑफर|प्रमोशन|कूपन|सेल/i,
-    en: "Use offers for a specific business goal instead of discounting everything. Examples: a first-order offer for acquisition, a limited-time offer for an abandoned checkout, or a loyalty benefit for repeat customers. Set a margin limit before launching the campaign and compare incremental completed payments against the cost of the discount.",
-    hi: "Offers को किसी specific business goal के लिए इस्तेमाल करें, हर order पर discount न दें। उदाहरण: acquisition के लिए first-order offer, abandoned checkout के लिए limited-time offer, या repeat customers के लिए loyalty benefit। Campaign शुरू करने से पहले margin limit तय करें और discount की cost के मुकाबले अतिरिक्त completed payments compare करें।",
-  },
-  {
-    key: "segmentation",
-    re: /segment|segmentation|customer group|customer cohort|high[- ]value|low[- ]value|new vs repeat|ग्राहक.*(segment|समूह)|सेगमेंट/i,
-    en: "Segment customers by behavior rather than sending the same message to everyone. A useful starting point is first-time buyers, repeat buyers, high-value customers, customers with an unresolved failed payment, and customers who abandoned checkout. Give each group a different message and measure its payment completion or repeat-purchase outcome.",
-    hi: "हर customer को एक जैसा message भेजने के बजाय behavior के आधार पर segmentation करें। शुरुआत first-time buyers, repeat buyers, high-value customers, unresolved failed-payment customers और abandoned-checkout customers से कर सकते हैं। हर group के लिए अलग message रखें और payment completion या repeat-purchase outcome measure करें।",
-  },
-  {
-    key: "communication_reminders",
-    re: /communicat(e|ion)|reminder message|message (customers?|template)|sms (best|tips|copy)|whatsapp|follow[- ]?up|संवाद|reminder कैसे|व्हाट्सऐप|फॉलो.?अप/i,
-    en: "Keep customer messages short and action-oriented. Mention the relevant payment/order context, give one clear next step or payment link, and avoid repeated messages in a short window. Use a gentle reminder for an abandoned checkout, a failure-specific explanation for a declined payment, and a human follow-up when the same payment has failed repeatedly.",
-    hi: "Customer messages छोटे और action-oriented रखें। Relevant payment/order context बताएं, एक clear next step या payment link दें और कम समय में बार-बार message न भेजें। Abandoned checkout के लिए gentle reminder, declined payment के लिए failure-specific explanation और बार-बार fail होने पर human follow-up रखें।",
-  },
-  {
-    key: "trust_credibility",
-    re: /\btrust\b|credibilit|trustworthy|reviews?|social proof|भरोसा|विश्वास|credibility|रीव्यू/i,
-    en: "Build trust by making payment communication consistent and transparent. Use your verified business identity, explain failures plainly, show the final payable amount before checkout, and make refunds/support easy to understand. Collect genuine reviews after successful purchases and respond professionally to negative feedback instead of hiding it.",
-    hi: "Trust बनाने के लिए payment communication consistent और transparent रखें। Verified business identity इस्तेमाल करें, failure को साफ शब्दों में बताएं, checkout से पहले final amount दिखाएं और refunds/support को समझना आसान रखें। Successful purchases के बाद genuine reviews लें और negative feedback को छिपाने की जगह professionally respond करें।",
-  },
-  {
-    key: "refunds_disputes",
-    re: /refund|dispute|chargeback|रिफंड|विवाद|चार्जबैक/i,
-    en: "For refunds and disputes, respond quickly, acknowledge the customer's issue, explain the next step and expected process clearly, and keep a record of the interaction. Make the refund path as simple as the original payment path. If a dispute is escalated, use your payment records and audit trail to keep the response factual and consistent.",
-    hi: "Refunds और disputes में जल्दी respond करें, customer की समस्या acknowledge करें, next step और process साफ बताएं और interaction का record रखें। Refund process को original payment जितना simple रखें। Dispute escalate होने पर payment records और audit trail का उपयोग करके factual और consistent response दें।",
-  },
-  {
-    key: "pricing_discounts",
-    re: /pricing|price (strategy|psychology)|upsell|cross[- ]sell|average order|aov|मूल्य|कीमत|छूट|upsell|cross.?sell/i,
-    en: "For pricing, keep the customer's decision simple: show the final price clearly, avoid unnecessary fee surprises, and test one pricing change at a time. Use targeted discounts instead of permanent blanket discounts. For upsell or cross-sell, offer a relevant add-on after the core purchase rather than distracting the customer during checkout.",
-    hi: "Pricing में customer का decision simple रखें: final price साफ दिखाएं, unnecessary fee surprises से बचें और एक समय में एक pricing change test करें। Permanent blanket discount की जगह targeted discounts इस्तेमाल करें। Upsell/cross-sell में checkout को distract करने के बजाय core purchase के बाद relevant add-on offer करें।",
-  },
-  {
-    key: "customer_support",
-    re: /customer support|customer service|handle complaints?|complaint|support team|ग्राहक सहायता|शिकायत|सपोर्ट/i,
-    en: "Good support should remove repeat work for the customer. Give support staff the payment status and failure reason when available, prioritize unresolved high-value or repeat-customer issues, and close the loop after the payment is actually recovered. Track response time and unresolved cases to spot operational bottlenecks.",
-    hi: "अच्छा support customer को बार-बार वही बात बताने से बचाता है। जहाँ available हो वहाँ support staff को payment status और failure reason दिखाएं, unresolved high-value या repeat-customer issues को priority दें और payment वास्तव में recover होने के बाद customer को update करें। Response time और unresolved cases track करके operational bottlenecks पहचानें।",
-  },
-  {
-    key: "failed_payment_recovery",
-    re: /failed payment|payment fail|payment recovery|recover.*payment|retry|recovery strategy|पेमेंट.*फेल|भुगतान.*असफल|payment.*recover/i,
-    en: "For failed-payment recovery, match the action to the failure reason instead of sending the same retry message to everyone. A temporary balance issue can justify a later retry; a card decline can call for another payment method; a repeated failure should move toward manual follow-up. Keep the number of automated attempts limited and measure recovered value by failure type.",
-    hi: "Failed-payment recovery में हर customer को एक जैसा retry message भेजने के बजाय failure reason के हिसाब से action चुनें। Temporary balance issue में बाद में retry, card decline में दूसरा payment method और repeated failure में manual follow-up बेहतर हो सकता है। Automated attempts की संख्या सीमित रखें और failure type के हिसाब से recovered value measure करें।",
+    re: /customer reach|increase.*reach|reach.*customer|grow.*customer|new customers?|customer acquisition|acquir.*customer|marketing|social media|advertis|lead generation|ग्राहक.*(बढ़|पहुंच|लाना)|नए ग्राहक|मार्केटिंग|विज्ञापन/i,
+    en: `To increase customer reach, build a simple acquisition loop: pick 1–2 channels where your target buyers already spend time, create a clear offer, send interested visitors to a fast checkout, and measure the funnel from visit → checkout → successful payment → repeat purchase. Add referral incentives for existing customers, recover abandoned checkouts, collect reviews after successful purchases, and test different offers instead of spending everywhere at once.`,
+    hi: `Customer reach बढ़ाने के लिए एक simple acquisition loop बनाइए: 1–2 ऐसे channels चुनें जहाँ आपके target buyers पहले से मौजूद हों, clear offer दें, fast checkout रखें और visit → checkout → successful payment → repeat purchase पूरा funnel measure करें। Existing customers के लिए referral incentive रखें, abandoned checkouts recover करें, successful purchases के बाद reviews लें और एक साथ हर जगह पैसा खर्च करने के बजाय अलग-अलग offers test करें।`,
   },
   {
     key: "sales_growth",
-    re: /increase sales|grow sales|sales growth|more orders|more sales|orders बढ़|बिक्री बढ़|sales बढ़|ज़्यादा orders/i,
-    en: "To grow sales, work on three levers separately: more qualified visitors, better checkout conversion, and more repeat purchases. Improving all three at once makes it hard to know what worked, so run small experiments—for example, one acquisition channel or one checkout improvement—and compare completed orders and revenue before expanding it.",
-    hi: "Sales बढ़ाने के लिए तीन levers अलग-अलग देखें: qualified visitors बढ़ाना, checkout conversion सुधारना और repeat purchases बढ़ाना। तीनों को एक साथ बदलने के बजाय छोटे experiments करें—जैसे एक acquisition channel या एक checkout improvement—और completed orders व revenue compare करके फिर scale करें।",
+    re: /increase sales|grow sales|boost sales|more sales|sales growth|बिक्री.*(बढ़|बढ़ाना)|sales बढ़/i,
+    en: `To grow sales, work on the three levers separately: get more qualified visitors, convert more of them, and increase repeat purchases. Start by finding where customers drop out — product page, checkout, payment or after the first purchase. Then run one change at a time, such as a clearer offer, fewer checkout steps, a better payment mix, abandoned-checkout recovery, or a targeted repeat-purchase offer.`,
+    hi: `Sales बढ़ाने के लिए तीन levers अलग-अलग देखें: qualified visitors बढ़ाएँ, conversion बढ़ाएँ और repeat purchases बढ़ाएँ। पहले पता करें कि customer कहाँ drop हो रहा है — product page, checkout, payment या first purchase के बाद। फिर एक समय में एक बदलाव test करें, जैसे clearer offer, कम checkout steps, बेहतर payment options, abandoned-checkout recovery या targeted repeat-purchase offer।`,
+  },
+  {
+    key: "payment_recovery_methods",
+    re: /recover (money|money\b|payments?|revenue)|recover.*payment|payment recovery|recovery methods?|other methods.*recover|how.*recover.*money|money.*recover|failed payment|failed payments?|stuck payment|unpaid|outstanding payment|payment.*वसूल|पैसे.*वसूल|पेमेंट.*recover|भुगतान.*वसूल/i,
+    en: `You can recover more failed payments with a layered approach instead of relying only on retries: (1) retry at a sensible time for temporary failures, (2) offer another payment method when the original method is declined, (3) send a short payment link/reminder for abandoned checkouts, (4) use WhatsApp/SMS or email follow-ups with a clear next step, (5) switch repeated failures to manual support, and (6) give high-value or repeat customers a more personal recovery flow. Track recovery by failure type, channel and number of attempts so you can stop tactics that do not work.`,
+    hi: `Failed payments से ज्यादा पैसा recover करने के लिए सिर्फ retries पर निर्भर न रहें। Layered approach रखें: (1) temporary failures के लिए सही समय पर retry, (2) declined payment पर दूसरा payment method, (3) abandoned checkout के लिए short payment link/reminder, (4) WhatsApp/SMS या email पर clear next step, (5) बार-बार fail होने पर manual support, और (6) high-value या repeat customers के लिए personal recovery flow। Recovery को failure type, channel और attempts के हिसाब से track करें ताकि जो तरीका काम नहीं करता उसे बंद किया जा सके।`,
+  },
+  {
+    key: "checkout_conversion",
+    re: /checkout conversion|improve checkout|checkout.*convert|abandon.*checkout|cart abandonment|checkout छोड़|कार्ट.*छोड़/i,
+    en: `Improve checkout by reducing friction: keep the form short, show the final amount clearly, make trusted payment methods obvious, avoid unnecessary redirects, and give customers a clear recovery path if payment fails. For abandoned checkouts, send a timely reminder with the payment link rather than restarting the entire sales conversation. Measure checkout starts, payment attempts, failures and successful payments separately.`,
+    hi: `Checkout conversion बेहतर करने के लिए friction कम करें: form छोटा रखें, final amount साफ दिखाएँ, trusted payment methods सामने रखें, unnecessary redirects कम करें और payment fail होने पर clear recovery path दें। Abandoned checkout पर पूरी sales conversation दोबारा शुरू करने के बजाय समय पर payment link वाला reminder भेजें। Checkout starts, payment attempts, failures और successful payments को अलग-अलग measure करें।`,
+  },
+  {
+    key: "offers_promotions",
+    re: /offer|promotion|promotions|campaign|coupon|coupon code|discount|छूट|ऑफर|promotion|campaign/i,
+    en: `Use promotions strategically rather than discounting everyone. Test a few offers: first-purchase incentive for new customers, limited-time offer for inactive customers, bundle/quantity offer for increasing order value, and a small recovery incentive only when a failed payment is worth saving. Compare incremental recovered/sold value against the discount cost so the offer does not simply reduce your margin.`,
+    hi: `Promotions को हर customer पर लागू करने के बजाय strategically इस्तेमाल करें। अलग offers test करें: new customers के लिए first-purchase incentive, inactive customers के लिए limited-time offer, order value बढ़ाने के लिए bundle/quantity offer और valuable failed payment के लिए छोटा recovery incentive। Discount की cost के मुकाबले extra recovered/sold value देखें ताकि margin बेवजह कम न हो।`,
+  },
+  {
+    key: "communication_reminders",
+    re: /communicat|reminder|follow.?up|message.*customer|sms|whatsapp|email.*customer|communication|संदेश|reminder|follow.?up|ग्राहक.*message/i,
+    en: `Good payment follow-ups are short, specific and action-oriented. Tell the customer what happened, give one clear next step or payment link, and avoid sending the same message repeatedly in a short period. A useful sequence is reminder → second channel → manual support for repeated failures, with different wording for abandoned checkout, temporary failure and payment-method decline.`,
+    hi: `अच्छे payment follow-ups छोटे, specific और action-oriented होने चाहिए। Customer को बताएं कि क्या हुआ, एक clear next step या payment link दें और कम समय में वही message बार-बार न भेजें। एक useful sequence है: reminder → दूसरा channel → repeated failure पर manual support; abandoned checkout, temporary failure और payment-method decline के लिए wording अलग रखें।`,
+  },
+  {
+    key: "pricing",
+    re: /pricing|price strategy|pricing strategy|how.*price|price.*customer|मूल्य|कीमत|pricing/i,
+    en: `For pricing, make the value obvious before trying to lower the price. Compare your conversion and repeat-purchase behaviour across a few price points or packages, use simple tiers, and avoid permanent blanket discounts. If a customer has already reached checkout, test whether the problem is actually price or payment friction before changing the price.`,
+    hi: `Pricing में price कम करने से पहले value साफ दिखाएँ। अलग price points या packages पर conversion और repeat purchase compare करें, simple tiers रखें और permanent blanket discounts से बचें। अगर customer checkout तक पहुँच चुका है, तो price बदलने से पहले देखें कि असली problem price है या payment friction।`,
+  },
+  {
+    key: "support_trust",
+    re: /customer support|customer service|complaint|complaints|trust|credibility|review|reviews|reputation|ग्राहक.*(सहायता|शिकायत)|भरोसा|विश्वास|review/i,
+    en: `Build trust by making the payment experience predictable: show the business name clearly, explain failures without vague language, respond quickly to complaints, keep refunds straightforward, and ask for a review after a genuinely successful purchase. When a payment fails repeatedly, human support is often better for trust than sending another automated message.`,
+    hi: `Trust बनाने के लिए payment experience predictable रखें: business name साफ दिखाएँ, failure को vague language के बजाय स्पष्ट तरीके से समझाएँ, complaints पर जल्दी जवाब दें, refunds सरल रखें और successful purchase के बाद review माँगें। Payment बार-बार fail होने पर एक और automated message भेजने के बजाय human support trust के लिए बेहतर हो सकता है।`,
+  },
+  {
+    key: "refunds_disputes",
+    re: /refund|refunds|dispute|chargeback|रिफंड|विवाद/i,
+    en: `For refunds and disputes, respond quickly, confirm what the customer is asking for, keep the process simple, and maintain a clear record of the payment and communication. If a refund is appropriate, making it easy and transparent can protect repeat business better than making the customer fight through support.`,
+    hi: `Refunds और disputes में जल्दी respond करें, customer की समस्या confirm करें, process सरल रखें और payment तथा communication का clear record रखें। Refund उचित है तो process को आसान और transparent रखना customer को support में भटकाने से बेहतर long-term business दे सकता है।`,
   },
 ];
 
@@ -471,19 +453,18 @@ function businessTopicAnswer(question, language) {
   return topic[language] || topic.en;
 }
 
-// A conservative, deterministic guess at whether a question is on-topic for
-// this assistant (dashboard data OR general merchant business advice) versus
-// unrelated to running the merchant's business entirely. Used only when
-// Gemini is unavailable — when Gemini IS available, it does this judgment
-// call itself (it's far better at handling arbitrary phrasing), and this is
-// just the safety net for the offline fallback.
-const ON_TOPIC_HINTS = /payment|recovery|customer|merchant|business|dashboard|revenue|refund|checkout|sms|strategy|reach|market|price|discount|support|trust|loyal|retain|churn|complaint|dispute|भुगतान|ग्राहक|व्यापार|व्यवसाय|राजस्व/i;
+// Broad merchant intent used only as the offline safety net. It intentionally
+// recognizes natural business wording such as "what other methods can I use
+// to recover money?" rather than requiring the user to mention dashboard terms.
+const GENERAL_MERCHANT_INTENT = /customer|customers|sales|sell|revenue|money|payment|payments|pay|recover|recovery|failed|failure|checkout|cart|order|orders|marketing|market|reach|grow|growth|acquisition|lead|offer|promotion|campaign|discount|price|pricing|refund|support|complaint|review|trust|retention|retain|repeat|loyal|churn|sms|whatsapp|email|ग्राहक|बिक्री|पैसे|भुगतान|पेमेंट|वसूल|रिकवरी|असफल|चेकआउट|मार्केटिंग|ऑफर|छूट|कीमत|रिफंड|सहायता|शिकायत|भरोसा|बार-बार/i;
+
+const DASHBOARD_DATA_INTENT = /dashboard|today|currently|right now|how many|count|amount|revenue at risk|recovery rate|who should i contact|which customer|which payment|why are my payments failing|कितने|आज|अभी|किसे.*संपर्क|कौन.*customer|कितना.*revenue/i;
 
 function offTopicDecline(language) {
   return t(
     language,
-    "I can only help with this recovery dashboard or general merchant-business questions — things like customer relationships, growing customer reach, communication, refunds, or pricing. Try asking one of those instead.",
-    "मैं केवल इस recovery dashboard या सामान्य merchant-business सवालों में मदद कर सकता हूँ — जैसे customer relationships, customer reach बढ़ाना, communication, refunds, या pricing। इनमें से कोई सवाल पूछें।"
+    "I’m focused on merchant and business questions. Ask me about sales, customer growth, payment recovery, checkout, retention, offers, pricing, refunds, support, or your dashboard.",
+    "मैं merchant और business से जुड़े सवालों में मदद कर सकता हूँ। Sales, customer growth, payment recovery, checkout, retention, offers, pricing, refunds, support या dashboard के बारे में पूछें।"
   );
 }
 
@@ -494,8 +475,8 @@ function reasonSpecificAnswer(context, reason, language) {
   if (!entry) {
     return t(
       language,
-      `No currently-failing payments have "${label}" as the reason right now. General guidance for this failure type: ${advice}`,
-      `अभी किसी भी failed payment का कारण "${label}" नहीं है। इस failure type के लिए सामान्य सलाह: ${advice}`
+      `There are no currently-unresolved payments with "${label}" as the failure reason. If you mean how to handle this type of failure in general, ${advice}`,
+      `अभी कोई unresolved payment "${label}" failure reason के साथ नहीं है। अगर आप इस failure type को सामान्य रूप से handle करने के तरीके पूछ रहे हैं, तो ${advice}`
     );
   }
   return t(
@@ -609,44 +590,42 @@ export async function askDashboardAssistant(merchantId, question, language = "en
     return { language: lang, generatedBy: "business-advice", answer: topicAnswer };
   }
 
-  // 9. Open-ended — grounded Gemini. It can do two things: (a) answer further
-  // dashboard-data questions using ONLY the supplied snapshot, never inventing
-  // a customer/amount/ranking, or (b) answer general merchant-business
-  // questions (customer relationships, growing reach, communication, refunds,
-  // pricing, support, trust) with genuine practical guidance. Anything outside
-  // those two — entertainment, trivia, sports, general knowledge unrelated to
-  // running this business — must be politely declined, not guessed at.
-  const prompt = `You are Resurrect's merchant AI copilot for a payment-recovery dashboard. Reply in ${LANGUAGE_NAMES[lang]}. The merchant may ask two kinds of legitimate questions:
+  // 9. Open-ended questions. Dashboard facts remain grounded, but general
+  // merchant/business advice is NOT forced to pretend it comes from the
+  // dashboard. This is the important distinction: "what other methods can I
+  // use to recover money?" should receive useful business advice even when the
+  // current dashboard has no matching failed-payment row.
+  const isDashboardQuestion = DASHBOARD_DATA_INTENT.test(q);
+  const isBusinessQuestion = GENERAL_MERCHANT_INTENT.test(q) || /how|what|why|can i|should i|ways|methods|क्या|कैसे|क्यों|करूँ|करना/i.test(q);
 
-(a) Questions about THIS dashboard's data (failures, recoveries, priorities, strategies, revenue) — answer these using ONLY the supplied JSON snapshot below. This is a strict grounding rule: do not invent customers, amounts, trends, causes, dates, strategies, or business results. If asked to rank or prioritize customers/payments, use ONLY the supplied "priorityQueue" (already ranked by the backend) — do not compute your own ranking or substitute different names. If the requested fact is not in the snapshot, explicitly say the dashboard does not contain enough information.
+  const prompt = `You are Resurrect, an AI copilot for merchants and online businesses. Reply in ${LANGUAGE_NAMES[lang]}.
 
-(b) General business questions relevant to running an online payments/e-commerce business — including customer acquisition/reach, sales growth, checkout conversion, abandoned checkouts, retention/repeat purchases, referrals, offers/promotions, customer segmentation, WhatsApp/SMS communication, trust/reviews, pricing, upsell/cross-sell, support, refunds/disputes, and failed-payment recovery. For these, answer with genuine, practical business guidance from general knowledge. You may reference the merchant's actual dashboard data as supporting context if relevant, but it isn't required.
+There are TWO modes:
+1) DASHBOARD MODE: If the merchant asks for a fact about their actual dashboard (counts, amounts, named customers, current failures, recovery rate, today's activity, or which payment/customer to prioritize), use ONLY the supplied dashboard snapshot. Never invent dashboard facts.
+2) BUSINESS ADVICE MODE: If the merchant asks a general business question (sales, customer reach, acquisition, retention, checkout, payment recovery, failed payments, offers, pricing, communication, refunds, support, reviews, etc.), answer directly with practical, specific merchant advice from your general business knowledge. Do NOT say that you can only answer from the dashboard. Do NOT require a matching dashboard record. You may mention dashboard data when it genuinely improves the answer, but general advice should stand on its own.
 
-Politely DECLINE anything outside those two categories — general trivia, entertainment, celebrities, sports, current events, or any topic unrelated to running this merchant's payments/recovery business. Keep a decline brief and suggest the kind of question you can help with instead.
+The merchant's question may be informal or use mixed Hindi/English. Understand the intent, and answer naturally in the requested language. Give diverse, concrete suggestions rather than repeating the same generic referral/SMS advice. Where useful, structure the answer as 4-6 actionable points and explain what to measure or test.
 
-Never use CIBIL scores, credit scores, bank statements, or any external financial data — none of that is available or permitted. Keep every answer brief (maximum 6 bullets or ~130 words).
+If the question is clearly unrelated to running a merchant/business, give a short refusal. Otherwise, help.
 
-DASHBOARD SNAPSHOT:
+DASHBOARD SNAPSHOT (use only when dashboard facts are requested):
 ${contextForPrompt(context)}
 
 MERCHANT QUESTION:
 ${q}`;
   const aiText = await askGemini(prompt);
-  if (aiText) return { language: lang, generatedBy: "gemini-grounded", answer: aiText };
+  if (aiText) return { language: lang, generatedBy: isDashboardQuestion ? "gemini" : "business-ai", answer: aiText };
 
-  // 10. Gemini unavailable. Only answer deterministically when the question at
-  // least looks on-topic (dashboard/business keywords) — otherwise decline
-  // rather than guessing, since without Gemini there's no reliable way to
-  // classify arbitrary phrasing as on- or off-topic. Never empty either way.
-  if (ON_TOPIC_HINTS.test(q)) {
-    const sections = deterministicInsights(context, lang);
+  // 10. Gemini unavailable: still provide useful business advice for broad
+  // merchant questions instead of falling back to the old dashboard-only text.
+  if (GENERAL_MERCHANT_INTENT.test(q)) {
     return {
       language: lang,
-      generatedBy: "grounded-fallback",
+      generatedBy: "business-advice",
       answer: t(
         lang,
-        `I can only answer from the dashboard data available right now. ${sections.whatHappened} ${sections.whatNext}`,
-        `मैं अभी केवल dashboard के उपलब्ध data पर जवाब दे सकता हूँ। ${sections.whatHappened} ${sections.whatNext}`
+        `For a merchant, start with the lever behind the question: acquisition (bring qualified customers), conversion (make checkout easier), recovery (retry temporary failures, offer another payment method, recover abandoned checkouts, and move repeated failures to human follow-up), and retention (give successful customers a reason to return). Test one change at a time and measure completed payments, recovered value, repeat purchases and cost per recovery.`,
+        `Merchant business में पहले यह देखें कि problem किस lever की है: acquisition (qualified customers लाना), conversion (checkout आसान करना), recovery (temporary failures को सही समय पर retry करना, दूसरा payment method देना, abandoned checkout recover करना और repeated failures को human follow-up में भेजना) और retention (successful customers को दोबारा खरीदने का कारण देना)। एक समय में एक बदलाव test करें और completed payments, recovered value, repeat purchases और recovery cost measure करें।`
       ),
     };
   }

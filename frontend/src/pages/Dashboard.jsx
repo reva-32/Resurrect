@@ -578,30 +578,30 @@ function PaymentDetail({ paymentId, onClose, onChanged }) {
 }
 
 
-function LanguageToggle({ language, onChange }) {
+function LanguageToggle({ language, onChange, compact = false }) {
   return (
-    <div className="flex items-center gap-1.5" aria-label="Assistant language">
-      <span className="text-[10px] uppercase tracking-wide font-semibold text-black/35 dark:text-white/35">
-        Language
-      </span>
-      <div className="inline-flex rounded-lg bg-black/5 dark:bg-white/10 p-0.5">
-        <button
-          type="button"
-          onClick={() => onChange("en")}
-          aria-pressed={language === "en"}
-          className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${language === "en" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white"}`}
-        >
-          English
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange("hi")}
-          aria-pressed={language === "hi"}
-          className={`px-2.5 py-1 text-xs rounded-md font-medium transition ${language === "hi" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white"}`}
-        >
-          हिन्दी
-        </button>
-      </div>
+    <div
+      role="group"
+      aria-label="Chatbot language"
+      className={`inline-flex items-center gap-0.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] p-1 ${compact ? "" : "shadow-sm"}`}
+    >
+      <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-black/40 dark:text-white/40">Language</span>
+      <button
+        type="button"
+        aria-pressed={language === "en"}
+        onClick={() => onChange("en")}
+        className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${language === "en" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50 hover:text-ink dark:hover:text-white"}`}
+      >
+        EN · English
+      </button>
+      <button
+        type="button"
+        aria-pressed={language === "hi"}
+        onClick={() => onChange("hi")}
+        className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-all ${language === "hi" ? "bg-white dark:bg-panel shadow-sm text-ink dark:text-white" : "text-black/50 dark:text-white/50 hover:text-ink dark:hover:text-white"}`}
+      >
+        HI · हिन्दी
+      </button>
     </div>
   );
 }
@@ -754,14 +754,14 @@ function DashboardInsights({ language, onLanguageChange, onRefresh, data, loadin
 
 function FloatingAssistant() {
   const [open, setOpen] = useState(false);
-  const [language, setLanguage] = useState(() => localStorage.getItem("rra_assistant_language") || "en");
+  const [language, setLanguage] = useState(() => localStorage.getItem("resurrect_copilot_language") || "en");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(false);
 
   const suggestions = language === "hi"
-    ? ["आज क्या हुआ?", "मेरे payments क्यों fail हो रहे हैं?", "किसे पहले संपर्क करूँ?", "insufficient-fund failures कैसे कम करूँ?", "customer reach कैसे बढ़ाऊँ?", "sales और repeat orders कैसे बढ़ाऊँ?", "checkout conversion कैसे सुधारूँ?", "customers को segment कैसे करूँ?"]
-    : ["What happened today?", "Why are my payments failing?", "Who should I contact first?", "How can I reduce insufficient-fund failures?", "How can I increase customer reach?", "How can I grow sales and repeat orders?", "How can I improve checkout conversion?", "How should I segment customers?"];
+    ? ["आज क्या हुआ?", "मेरे payments क्यों fail हो रहे हैं?", "किसे पहले संपर्क करूँ?", "insufficient-fund failures कैसे कम करूँ?", "कौन सी recovery strategy काम कर रही है?", "मुझे अगला क्या करना चाहिए?"]
+    : ["What happened today?", "Why are my payments failing?", "Who should I contact first?", "How can I reduce insufficient-fund failures?", "Which recovery strategy is working?", "What should I do next?"];
 
   async function submit(text = question) {
     const q = String(text || "").trim();
@@ -781,7 +781,7 @@ function FloatingAssistant() {
 
   function changeLanguage(next) {
     setLanguage(next);
-    localStorage.setItem("rra_assistant_language", next);
+    localStorage.setItem("resurrect_copilot_language", next);
     setMessages([]);
   }
 
@@ -794,11 +794,11 @@ function FloatingAssistant() {
               <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0"><BrainCircuit size={17} /></div>
               <div className="min-w-0">
                 <div className="font-display font-bold text-sm">Resurrect Copilot</div>
-                <div className="text-[11px] text-black/40 dark:text-white/40">Dashboard insights + business guidance</div>
+                <div className="text-[11px] text-black/40 dark:text-white/40">Dashboard insights + merchant business advice</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <LanguageToggle language={language} onChange={changeLanguage} />
+              <LanguageToggle language={language} onChange={changeLanguage} compact />
               <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"><X size={17} /></button>
             </div>
           </div>
@@ -807,7 +807,7 @@ function FloatingAssistant() {
             {messages.length === 0 && (
               <div>
                 <div className="rounded-xl bg-accent/5 border border-accent/10 p-3 text-sm leading-5 mb-3">
-                  {language === "hi" ? "मैं आपके live dashboard data के साथ payments, customers, sales, retention, reach और recovery जैसे merchant-business सवालों पर practical guidance दे सकता हूँ।" : "I can explain your live dashboard data and give practical guidance on payments, customers, sales, retention, reach, and recovery."}
+                  {language === "hi" ? "मैं आपके dashboard के numbers और merchant business दोनों पर practical सलाह दे सकता हूँ — जैसे sales, customer growth, checkout, payment recovery, retention और pricing।" : "Ask me about your dashboard or any practical merchant-business problem — sales, customer growth, checkout, payment recovery, retention, pricing and more."}
                 </div>
                 <div className="space-y-2">
                   {suggestions.map((item) => <button key={item} onClick={() => submit(item)} className="w-full text-left text-xs px-3 py-2.5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/5">{item}</button>)}
@@ -822,9 +822,12 @@ function FloatingAssistant() {
                     <div className="mt-1.5 text-[10px] opacity-50">
                       {{
                         "dashboard-data": "Dashboard data",
-                        "gemini-grounded": "Grounded AI",
-                        "grounded-fallback": "Grounded fallback (AI unavailable)",
-                      }[message.source] || "Grounded AI"}
+                        "gemini": "AI · Dashboard",
+                        "business-ai": "AI · Business advice",
+                        "gemini-grounded": "AI · Dashboard",
+                        "business-advice": "Business advice",
+                        "grounded-fallback": "Dashboard fallback",
+                      }[message.source] || "AI"}
                     </div>
                   )}
                 </div>
