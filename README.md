@@ -1,346 +1,367 @@
 # Resurrect — AI Revenue Recovery Engine
 
-Resurrect is an AI-assisted payment recovery system for merchants. It combines deterministic recovery rules with Gemini-based decisioning, Razorpay Payment Links, webhook-confirmed payment recovery, merchant authentication, recovery analytics, and a public customer payment-status page.
+> **Don't just detect lost revenue. Decide how to recover it, execute safely, verify the payment, and prove the money came back.**
 
-The project is designed so that **real Razorpay recovery is only marked successful after a verified Razorpay webhook**. Creating or opening a payment link does not mark the payment as recovered.
+Resurrect is an **AI-assisted revenue recovery engine** that helps merchants recover revenue slipping through failed payments.
+
+It combines **AI decisioning, deterministic safety controls, Razorpay Payment Links, verified webhooks, recovery analytics, bilingual insights, and a complete audit trail** into one closed-loop recovery system.
+
+## The Core Loop
+
+```text
+Failed Payments
+      ↓
+Detect → Diagnose → Prioritize
+      ↓
+AI recommends the right action
+      ↓
+Deterministic policy validates it
+      ↓
+Recovery via Razorpay
+      ↓
+Verified Webhook
+      ↓
+Recovered Revenue + Insights + Audit Trail
+```
+
+## Why Resurrect?
+
+* **AI decides, not just detects** — every failed payment is analyzed for the appropriate intervention: retry, SMS/payment link, escalate, or stop.
+* **No blanket reminders** — decisions are based on the individual payment, customer history, failure reason, and previous attempts.
+* **AI never touches money directly** — recommendations pass through deterministic backend policies with retry limits and stopping rules.
+* **Recovery is outcome-based** — sending an SMS or creating a payment link is not counted as recovery. Revenue is marked recovered only after verified Razorpay payment confirmation.
+* **Revenue-first prioritization** — failed payments are ranked using amount at risk, customer history, failure reason, retry history, repeated failures, and recency.
+* **End-to-end recovery funnel** — failed payment → diagnosis → recovery action → customer payment → verified recovery.
+* **Actionable analytics** — charts explain where revenue is leaking, whether recovery is improving, and which strategies are working.
+* **Bilingual insights** — recovery insights and explanations are available in **English and Hindi**.
+* **Full audit trail** — AI recommendations, backend decisions, recovery attempts, and outcomes are logged per payment.
+* **PCI-safe by design** — card numbers and bank credentials stay inside Razorpay Checkout.
+* **Resilient by design** — deterministic recovery rules keep the workflow running when Gemini is unavailable or rate-limited.
+
+## Key Features
+
+### 🧠 AI-Assisted Recovery
+
+Resurrect uses Gemini to provide contextual recovery recommendations instead of applying one recovery action to every failure.
+
+* Analyzes payment context and failure reason.
+* Recommends **retry, SMS/payment link, escalate, or stop**.
+* Uses customer and recovery history as part of the decision context.
+* Passes AI recommendations through deterministic backend policies.
+* Enforces retry limits and stopping rules outside the AI.
+* Falls back to deterministic recovery rules when Gemini is unavailable or rate-limited.
+* Limits Gemini calls per run to control API usage.
+
+### 🎯 Smart Prioritization
+
+A failed-payment list is only useful if the merchant knows **where to start**.
+
+Resurrect ranks payments using:
+
+* Amount at risk
+* Customer payment history
+* Failure reason
+* Previous recovery attempts
+* Repeated failures
+* Recency
+
+This turns a large pool of failed payments into an actionable:
+
+> **“Recover these first” queue.**
+
+### 📊 Insights & Recovery Analytics
+
+Resurrect goes beyond basic dashboard metrics by connecting **transaction behavior with actual revenue impact**.
+
+#### Failure Breakdown
+
+Shows how failed payments are distributed across failure reasons while also showing the **revenue exposed by each category**.
+
+This helps distinguish between:
+
+* A failure reason with many low-value transactions
+* A failure reason with fewer transactions but much higher revenue at risk
+
+Merchants can therefore prioritize based on **financial impact**, not just transaction count.
+
+#### Recovery Trend
+
+Tracks recovery performance over time to show whether recovery efforts are actually improving.
+
+Instead of asking only:
+
+> “How much have we recovered?”
+
+the merchant can see:
+
+> “Is our recovery performance improving over time?”
+
+#### Strategy Performance
+
+Compares recovery outcomes across different strategies.
+
+Resurrect applies a **minimum sample-size guard**, preventing the system from declaring a strategy “best” simply because it performed well on a tiny number of attempts.
+
+#### Priority & Failure Insights
+
+The Insights layer converts payment data into actionable explanations:
+
+* What is causing the most failures?
+* Where is the most revenue exposed?
+* Which payments deserve attention first?
+* What recovery action makes sense?
+* Which strategies are producing successful outcomes?
+
+#### Bilingual Insights
+
+Recovery insights and explanations are available in:
+
+**English 🇬🇧 | Hindi 🇮🇳**
+
+Together, the charts and insights provide a complete view of:
+
+> **Where is revenue leaking?
+> Is recovery improving?
+> Which strategy is working?
+> What should the merchant focus on next?**
+
+### 💳 Razorpay-Powered Recovery
+
+* Razorpay Test Mode Payment Links for the live demonstration.
+* Razorpay notification SMS for the live Payment Link.
+* Customer-facing payment-status page.
+* Secure Razorpay Checkout handles payment details.
+* Verified Razorpay webhook confirmation.
+* Payment state changes to `recovered` only after valid payment confirmation.
+
+### 💬 Recovery AI Assistant
+
+The dashboard provides a conversational assistant for questions such as:
+
+* “Who should I recover first?”
+* “Why are these payments failing?”
+* “What should I do next?”
+
+The assistant is grounded in backend-generated payment and recovery context, allowing merchants to interact with the recovery intelligence conversationally.
+
+### 🔎 Full Audit Trail
+
+Every important recovery step is traceable through:
+
+* AI decisions
+* Approved/rejected actions
+* Recovery attempts
+* SMS logs
+* Payment recovery events
+* Audit logs
+
+This provides transparency into **what the AI recommended, what the backend allowed, and what ultimately happened**.
+
+### 🔐 Security & PCI-Safe Design
+
+* Card numbers and bank credentials are never handled by Resurrect.
+* Razorpay Checkout handles sensitive payment information.
+* Razorpay webhook signatures are verified before processing payment events.
+* Secrets remain on the backend.
+* JWT authentication protects merchant APIs.
+* Passwords are bcrypt-hashed.
+* API/auth rate limiting is enabled.
+* Helmet security headers are enabled.
+
+## Tech Stack
+
+| Layer          | Technology                        |
+| -------------- | --------------------------------- |
+| Frontend       | React, Vite                       |
+| Backend        | Node.js, Express                  |
+| Database       | MongoDB, Mongoose                 |
+| AI             | Gemini                            |
+| Payments       | Razorpay Payment Links + Webhooks |
+| Authentication | JWT + bcrypt                      |
+| Deployment     | Vercel + Render                   |
+| Demo Data      | Synthetic failed-payment dataset  |
 
 ## Architecture
 
 ```text
-frontend/
-├── React + Vite merchant dashboard
-├── Login / Signup
-├── Dashboard / recovery controls
-├── Settings / demo configuration
-└── Public /pay/:paymentId customer payment page
-
-backend/
-├── Express API
-├── MongoDB + Mongoose
-├── Razorpay Payment Links + webhooks
-├── Gemini AI decision engine
-├── Deterministic recovery-rule fallback
-├── JWT + bcrypt authentication
-└── Mock SMS for synthetic/demo dataset flows
+                         ┌─────────────────────┐
+                         │  Merchant Dashboard │
+                         │     React + Vite    │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │   Express Backend   │
+                         │ Recovery + Policies │
+                         └───────┬───────┬─────┘
+                                 │       │
+                    ┌────────────┘       └─────────────┐
+                    ▼                                  ▼
+             ┌─────────────┐                    ┌─────────────┐
+             │   Gemini AI  │                    │   MongoDB   │
+             │ Recommendation│                   │ State + Logs│
+             └──────┬──────┘                    └─────────────┘
+                    │
+                    ▼
+           ┌─────────────────────┐
+           │ Deterministic Policy│
+           │ Limits + Stop Rules │
+           └──────────┬──────────┘
+                      │
+                      ▼
+              ┌──────────────────┐
+              │ Razorpay Payment │
+              │      Link        │
+              └────────┬─────────┘
+                       │
+                       ▼
+                    Customer
+                       │
+                       ▼
+               Razorpay Webhook
+                       │
+                       ▼
+              Verified Recovery State
+                       │
+                       ▼
+                Dashboard Metrics
 ```
 
-## Main features
+## Demo
 
-- Merchant signup/login with JWT authentication.
-- Synthetic failed-payment dataset seeding for demonstrations.
-- AI-assisted recovery decisions using Gemini.
-- Deterministic rule-based fallback when Gemini is unavailable, rate-limited, or returns an unusable response.
-- Per-run Gemini call limit through `GEMINI_MAX_CALLS_PER_RUN`.
-- Razorpay Test Mode Payment Link generation for the live demo customer.
-- Razorpay notification SMS for the live Payment Link — no third-party SMS provider is required.
-- Mock SMS logging for synthetic recovery flows.
-- Razorpay webhook signature verification using the raw request body.
-- Payment recovery state updated only after a valid Razorpay webhook.
-- Public customer payment-status page with polling.
-- Recovery attempts, AI decisions, SMS logs, and audit logs stored in MongoDB.
-- Dashboard metrics for recovery activity and outcomes.
+The project uses two complementary modes.
 
-## Local setup
+### Synthetic Batch
 
-### 1. Backend
+Demonstrates recovery intelligence across multiple failed payments:
 
-```bash
-cd backend
-npm install
-npm start
-```
+* Failure analysis
+* Revenue at risk
+* Smart prioritization
+* Recovery actions
+* Strategy performance
+* Recovery trends
+* Bilingual insights
+* AI-assisted recommendations
 
-The backend runs on port `5000` by default and exposes the health check at:
+### Dedicated Live Demo
+
+A separate non-synthetic demo payment demonstrates the actual Razorpay recovery loop.
+
+> ### ⚠️ Before Running the Live Demo
+>
+> **1. Log in to the merchant dashboard.**
+> **2. Go to `Settings`.**
+> **3. Add the demo customer's name and phone number in `+91XXXXXXXXXX` format.**
+> **4. Click `Update` to save the demo details.**
+> **5. Update/reload the synthetic data from the dashboard.**
+>
+> **The configured `+91` number will receive the Razorpay Payment Link SMS during the recovery flow.**
+
+Then run the recovery flow:
 
 ```text
-http://localhost:5000/api/health
+Merchant Dashboard
+      ↓
+Settings → Add Demo Name + +91 Phone Number
+      ↓
+Update Synthetic Data
+      ↓
+Run Recovery
+      ↓
+Razorpay Test Mode Payment Link
+      ↓
+Payment Link SMS → Configured Phone
+      ↓
+Customer Payment
+      ↓
+Razorpay Webhook
+      ↓
+Signature Verification
+      ↓
+Payment → Recovered
+      ↓
+Dashboard + Customer Status Updated
 ```
 
-Expected response:
+> **Test Mode:** the live demo uses Razorpay Test Mode, so no real money is transferred.
 
-```json
-{"ok":true}
-```
+> **Important:** Creating, opening, or sending a Payment Link does **not** count as recovered revenue. Recovery is confirmed only after the verified Razorpay webhook.
 
-### 2. Backend environment
+## Manual Guide
 
-Copy the example file:
+A **merchant manual guide is available within the dashboard** for newly registered merchants.
 
-```bash
-cd backend
-copy .env.example .env
-```
+It briefly explains how to get started, understand revenue at risk, run recovery workflows, interpret insights and charts, and use the AI Assistant.
 
-On macOS/Linux, use `cp .env.example .env` instead.
+## Live Demo
 
-Fill in the required local/test values in `backend/.env`. Important variables include:
+🚀 **Deployed Application:** https://resurrect-one.vercel.app/
 
-```text
-MONGODB_URI=...
-JWT_SECRET=...
-CLIENT_URL=http://localhost:5173
+The complete application is deployed and can be tested through the live frontend.
 
-RAZORPAY_KEY_ID=...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_WEBHOOK_SECRET=...
-RAZORPAY_NOTIFY_SMS=true
-RAZORPAY_NOTIFY_EMAIL=false
-
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.6-flash
-GEMINI_MAX_CALLS_PER_RUN=5
-
-SMS_MOCK_MODE=true
-DEMO_PHONE=+91XXXXXXXXXX
-DEMO_NAME=Your Name
-DEMO_AMOUNT_RUPEES=5
-```
-
-`GEMINI_API_KEY` is optional. If Gemini cannot be used, the application continues with the deterministic recovery rules.
-
-### 3. Seed demo data
-
-Run the seed command from the `backend/` directory:
-
-```bash
-cd backend
-npm run seed
-```
-
-The seed creates the synthetic dataset plus a dedicated non-synthetic demo customer/payment. The live demo payment uses:
-
-- `DEMO_NAME` for the customer name.
-- `DEMO_PHONE` for the customer phone number.
-- `DEMO_AMOUNT_RUPEES` for the amount, defaulting to **₹5**.
-
-### 4. Frontend
-
-In a second terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Create `frontend/.env` with:
-
-```text
-VITE_API_URL=http://localhost:5000/api
-```
-
-The main frontend contains both the authenticated merchant dashboard and the public `/pay/:paymentId` customer page.
-
-## Recovery logic
-
-Ressurect uses two decision paths:
-
-1. **Gemini AI decisioning** — Gemini evaluates the failed-payment context and returns a structured recovery action.
-2. **Deterministic rules fallback** — the recovery engine applies predefined failure-reason rules when Gemini is unavailable, rate-limited/quota-limited, invalid, or otherwise cannot provide a usable decision.
-
-The application also stops repeatedly calling Gemini after an explicit quota/rate-limit condition during the current process run. This prevents unnecessary repeated requests while allowing the recovery flow to continue through the rules engine.
-
-For the dedicated live demo customer, the application ensures the recovery flow produces a real Razorpay Payment Link even if the AI/rules decision would otherwise choose a non-payment-link action. This is intentional: the live demo must give the customer an actual Razorpay payment path, while synthetic payments continue to demonstrate the normal AI-vs-rules recovery experiment.
-
-## Live Razorpay demo flow
-
-1. Start MongoDB/backend/frontend and log in to the merchant dashboard.
-2. Open **Settings → Sample Data** and configure the demo customer's name and phone number if required.
-3. Seed/reload the sample data. The dedicated demo payment is non-synthetic and defaults to **₹5**.
-4. Open the demo payment and choose **Run recovery (real Razorpay link → SMS)**.
-5. The backend creates a **Razorpay Test Mode Payment Link** using the configured Razorpay test credentials.
-6. Razorpay can send the Payment Link notification directly to the configured customer phone when `RAZORPAY_NOTIFY_SMS=true`. No separate SMS provider is used for this live flow.
-7. Open the public `/pay/:paymentId` page from the recovery flow. Authentication is not required for this page.
-8. Before payment, the customer page shows the payment as pending/recovery in progress.
-9. Complete the payment through Razorpay Test Mode using Razorpay's test payment flow.
-10. Razorpay sends the payment event to the configured webhook endpoint.
-11. The backend verifies `X-Razorpay-Signature`, finds the corresponding payment, marks it `recovered`, stores the recovered amount/time, and resolves the pending recovery attempt.
-12. The customer page polls the backend and changes to **Payment received**. The merchant dashboard changes the same payment to **Recovered**.
-
-### Important demo rule
-
-The merchant dashboard **must not** mark the live demo payment as recovered merely because a Payment Link was created, opened, or sent. Recovery is confirmed only after the verified Razorpay webhook updates MongoDB.
-
-## Local webhook testing
-
-Razorpay cannot directly deliver webhooks to a private `localhost` URL. Therefore, the complete local payment → webhook → MongoDB flow requires a publicly reachable webhook URL, such as a temporary tunnel.
-
-For the final demonstration, **deploy the backend to Render instead of relying on a local tunnel**. The public Render URL becomes the Razorpay webhook endpoint.
-
-The Payment Link itself can still be created and paid in Razorpay Test Mode while the application is running locally; only the webhook callback requires a public endpoint.
+> **Demo Note:** The recovery payment flow uses Razorpay Test Mode, so no real money is involved.
 
 ## Deployment
 
-### MongoDB Atlas
+The application is deployed using:
 
-Create a MongoDB Atlas cluster/database user and configure network access so the deployed backend can connect.
+* **Vercel** — React frontend
+* **Render** — Express backend
+* **MongoDB Atlas** — database
+* **Razorpay Test Mode** — Payment Links + webhooks
 
-Use the Atlas connection string as:
-
-```text
-MONGODB_URI=...
-```
-
-### Render — backend
-
-Deploy the `backend/` directory as a **Docker Web Service**.
-
-Render configuration:
-
-```text
-Root Directory: backend
-Runtime: Docker
-Dockerfile: Dockerfile
-```
-
-The included `backend/Dockerfile` installs production dependencies and starts the Express server. The server uses Render's `PORT` value and binds to `0.0.0.0`.
-
-Set these environment variables in Render:
-
-```text
-MONGODB_URI
-JWT_SECRET
-CLIENT_URL
-
-RAZORPAY_KEY_ID
-RAZORPAY_KEY_SECRET
-RAZORPAY_WEBHOOK_SECRET
-RAZORPAY_NOTIFY_SMS=true
-RAZORPAY_NOTIFY_EMAIL=false
-
-GEMINI_API_KEY (optional)
-GEMINI_MODEL
-gemini-3.6-flash
-GEMINI_MAX_CALLS_PER_RUN
-
-SMS_MOCK_MODE=true
-DEMO_PHONE
-DEMO_NAME
-DEMO_AMOUNT_RUPEES=5
-```
-
-Do **not** manually hardcode Render's `PORT`; Render provides it at runtime.
-
-After deployment, verify:
-
-```text
-https://<your-render-service>.onrender.com/api/health
-```
-
-It should return HTTP 200 with:
-
-```json
-{"ok":true}
-```
-
-### Vercel — frontend
-
-Deploy `frontend/` as the Vercel project root.
-
-```text
-Build command: npm run build
-Output directory: dist
-```
-
-Set the Vercel environment variable:
-
-```text
-VITE_API_URL=https://<your-render-service>.onrender.com/api
-```
-
-The included `frontend/vercel.json` rewrites SPA routes so direct navigation works for:
-
-- `/login`
-- `/signup`
-- `/dashboard`
-- `/settings`
-- `/pay/:paymentId`
-
-After the Vercel deployment is available, set Render's `CLIENT_URL` to the final Vercel frontend URL.
-
-## Razorpay webhook configuration
-
-After the Render backend is live, configure a Razorpay **Test Mode** webhook pointing to:
+Razorpay webhooks require a publicly reachable backend endpoint.
 
 ```text
 https://<your-render-service>.onrender.com/api/webhooks/razorpay
 ```
 
-Use the same value for `RAZORPAY_WEBHOOK_SECRET` in Razorpay and Render.
+The backend verifies `X-Razorpay-Signature` before processing payment events.
 
-The backend is prepared to handle the payment events used by the recovery flow, including:
+Supported recovery events include:
 
 ```text
 payment_link.paid
 payment.captured
 ```
 
-The webhook handler validates the Razorpay signature before processing the event. Unmatched but valid webhook events are acknowledged without changing unrelated payments.
+## API Overview
 
-## End-to-end deployment test
+The backend exposes APIs for authentication, payment management, recovery execution, dashboard analytics, and Razorpay webhook processing.
 
-After Render, Vercel, MongoDB Atlas, and the Razorpay webhook are configured:
-
-1. Open the Vercel frontend.
-2. Log in to the merchant account.
-3. Configure the demo customer in Settings if needed.
-4. Seed/reload the sample data.
-5. Run **Run recovery (real Razorpay link → SMS)** for the live demo payment.
-6. Open the generated Razorpay Payment Link.
-7. Complete the ₹5 Test Mode payment.
-8. Check Render logs for the incoming Razorpay webhook.
-9. Confirm the payment changes from `recovery_in_progress` to `recovered`.
-10. Confirm the customer page shows **Payment received** and the merchant dashboard shows **Recovered**.
-
-## API overview
-
-### Public
-
-```text
-GET  /api/health
-GET  /api/public/payments/:id
-POST /api/public/payments/:id/viewed
-POST /api/webhooks/razorpay
-```
-
-### Authentication
+### Key Endpoints
 
 ```text
 POST /api/auth/signup
 POST /api/auth/login
-GET  /api/auth/me
-```
 
-### Merchant APIs
-
-```text
 GET  /api/payments
-GET  /api/payments/:id
 POST /api/recovery/run
 POST /api/recovery/:paymentId/run
+
 GET  /api/dashboard/metrics
 POST /api/dashboard/seed
-GET  /api/settings/status
+
+POST /api/webhooks/razorpay
+GET  /api/public/payments/:id
 ```
 
-Merchant endpoints are protected by JWT authentication where required.
+Merchant endpoints are protected using JWT authentication where required.
 
 ## Security
 
-- Passwords are bcrypt-hashed.
-- Signup/login validate email format and require a password of at least 8 characters containing a letter, number, and special character.
-- JWT protects merchant APIs.
-- Helmet security headers are enabled.
-- API/auth rate limiting is enabled.
-- Razorpay webhook signatures are verified against the raw request body.
-- Razorpay API credentials, webhook secrets, Gemini keys, and JWT secrets are loaded from environment variables.
-- Card/payment credentials are never handled by the application server.
-- The public `/pay/:paymentId` route exposes only the customer/payment information required for the payment-status experience.
-- The live demo uses Razorpay Test Mode; it is intended for simulated transactions, not real-money collection.
+* Passwords are bcrypt-hashed.
+* JWT protects merchant APIs.
+* Helmet security headers are enabled.
+* API/auth rate limiting is enabled.
+* Razorpay webhook signatures are verified against the raw request body.
+* Razorpay, Gemini, JWT, MongoDB, and webhook secrets are stored in environment variables.
+* Card numbers and bank credentials are never handled by the application server.
+* Public payment-status routes expose only the information required for the customer payment experience.
+* The live demo uses Razorpay Test Mode and does not collect real money.
 
-## Never commit secrets
-
-Never commit:
+### Never Commit Secrets
 
 ```text
 backend/.env
@@ -355,11 +376,9 @@ MongoDB credentials
 Personal phone numbers
 ```
 
-Use the committed `.env.example` files as templates.
+If a real credential is ever committed to a public repository, rotate/revoke it before deployment.
 
-If a real credential was ever committed to a public Git repository, **rotate/revoke it before deployment** even if the file is later deleted.
-
-## Project structure
+## Project Structure
 
 ```text
 Resurrect/
@@ -388,3 +407,22 @@ Resurrect/
 ├── README.md
 └── .gitignore
 ```
+
+## Future Scope
+
+Resurrect can expand from failed-payment recovery into a broader **AI revenue recovery layer for different merchant segments and revenue types**.
+
+* **MSME revenue recovery** — tailor recovery workflows for small and medium businesses where delayed customer payments, failed transactions, and overdue invoices can directly affect cash flow.
+* **B2B & receivables recovery** — extend the same decisioning and audit framework to overdue invoices, payment promises, and receivables follow-ups.
+* **Checkout abandonment recovery** — recover customers who leave before completing checkout.
+* **Failed subscription recovery** — handle recurring-payment failures with adaptive retry and communication strategies.
+* **Adaptive recovery strategies** — learn from historical recovery outcomes to improve intervention selection over time.
+* **Broader merchant coverage** — support both **retail/customer-facing payments and MSME/B2B revenue recovery** while retaining deterministic controls, payment verification, and auditability.
+
+The long-term goal is to evolve Resurrect from a failed-payment recovery tool into a **general-purpose AI revenue recovery layer for merchants**.
+
+---
+
+### Resurrect in one line
+
+**Detect the revenue at risk. Decide how to recover it. Execute safely. Verify the payment. Measure what came back.**
