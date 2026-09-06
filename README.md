@@ -185,15 +185,15 @@ This provides transparency into **what the AI recommended, what the backend allo
 
 ```text
                          ┌─────────────────────┐
-                         │   Merchant Dashboard │
-                         │     React + Vite     │
+                         │  Merchant Dashboard │
+                         │     React + Vite    │
                          └──────────┬──────────┘
                                     │
                                     ▼
                          ┌─────────────────────┐
                          │   Express Backend   │
-                         │ Recovery + Policies  │
-                         └───────┬───────┬──────┘
+                         │ Recovery + Policies │
+                         └───────┬───────┬─────┘
                                  │       │
                     ┌────────────┘       └─────────────┐
                     ▼                                  ▼
@@ -246,16 +246,32 @@ Demonstrates recovery intelligence across multiple failed payments:
 
 ### Dedicated Live Demo
 
-A separate non-synthetic demo payment demonstrates the actual Razorpay recovery loop:
+A separate non-synthetic demo payment demonstrates the actual Razorpay recovery loop.
+
+> ### ⚠️ Before Running the Live Demo
+>
+> **1. Log in to the merchant dashboard.**
+> **2. Go to `Settings`.**
+> **3. Add the demo customer's name and phone number in `+91XXXXXXXXXX` format.**
+> **4. Click `Update` to save the demo details.**
+> **5. Update/reload the synthetic data from the dashboard.**
+>
+> **The configured `+91` number will receive the Razorpay Payment Link SMS during the recovery flow.**
+
+Then run the recovery flow:
 
 ```text
 Merchant Dashboard
+      ↓
+Settings → Add Demo Name + +91 Phone Number
+      ↓
+Update Synthetic Data
       ↓
 Run Recovery
       ↓
 Razorpay Test Mode Payment Link
       ↓
-Customer SMS → Phone
+Payment Link SMS → Configured Phone
       ↓
 Customer Payment
       ↓
