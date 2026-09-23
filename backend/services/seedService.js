@@ -5,10 +5,12 @@
 
 import Customer from "../models/Customer.js";
 import Payment, { FAILURE_REASON_VALUES } from "../models/Payment.js";
+import TrainingRecord from "../models/TrainingRecord.js";
 
 const FIRST_NAMES = ["Rahul", "Priya", "Amit", "Sneha", "Vikram", "Anjali", "Rohan", "Neha", "Karan", "Divya", "Arjun", "Pooja", "Suresh", "Kavya", "Manish"];
 const LAST_NAMES = ["Sharma", "Verma", "Patel", "Iyer", "Reddy", "Nair", "Gupta", "Singh", "Rao", "Mehta", "Kulkarni", "Joshi"];
-const SYNTHETIC_PAYMENT_COUNT = 15;
+const SYNTHETIC_PAYMENT_COUNT = 100;
+const SYNTHETIC_TRAINING_RECORD_COUNT = 1000;
 
 function randomFrom(array) {
   return array[Math.floor(Math.random() * array.length)];
@@ -47,6 +49,77 @@ function generateRetryCount() {
   if (p < 0.9) return 1;
   return 2;
 }
+
+const PAYMENT_METHODS = ["card", "upi", "netbanking", "wallet"];
+
+function generatePaymentMethod() {
+  return randomFrom(PAYMENT_METHODS);
+}
+
+function generateCustomerHistory() {
+  return randomInt(0, 12);
+}
+
+function generatePreviousFailures() {
+  return randomInt(0, 4);
+}
+
+function generateTimeSinceFailureMinutes() {
+  return randomInt(5, 7 * 24 * 60);
+}
+
+function calculateSyntheticRecoveryProbability({ amount, failureReason, retryCount, customerHistory, previousFailures, timeSinceFailureMinutes }) {
+  let probability = 0.58;
+
+  const reasonEffect = {
+    bank_timeout: 0.16,
+    network_error: 0.12,
+    checkout_abandoned: 0.02,
+    otp_failed: -0.04,
+    insufficient_funds: -0.10,
+    card_declined: -0.14,
+    unknown: -0.05,
+  };
+
+  probability += reasonEffect[failureReason] ?? 0;
+  probability -= retryCount * 0.10;
+  probability += Math.min(customerHistory, 8) * 0.025;
+  probability -= previousFailures * 0.035;
+
+  if (amount < 100000) probability += 0.03;
+  else if (amount > 5000000) probability -= 0.04;
+
+  if (timeSinceFailureMinutes > 48 * 60) probability -= 0.06;
+  else if (timeSinceFailureMinutes < 60) probability += 0.03;
+
+  return Math.max(0.08, Math.min(0.92, probability));
+}
+
+function generateTrainingRecord(merchantId) {
+  const amount = generateAmountPaise();
+  const failureReason = generateFailureReason();
+  const retryCount = generateRetryCount();
+  const customerHistory = generateCustomerHistory();
+  const previousFailures = generatePreviousFailures();
+  const timeSinceFailureMinutes = generateTimeSinceFailureMinutes();
+  const probability = calculateSyntheticRecoveryProbability({
+    amount, failureReason, retryCount, customerHistory, previousFailures, timeSinceFailureMinutes,
+  });
+
+  return {
+    merchant: merchantId,
+    amount,
+    paymentMethod: generatePaymentMethod(),
+    failureReason,
+    retryCount,
+    timeSinceFailureMinutes,
+    customerHistory,
+    previousFailures,
+    recovered: Math.random() < probability,
+    dataSource: "synthetic",
+  };
+}
+
 function generateFailedAt() {
   const daysAgo = randomInt(0, 13);
   const hoursAgo = randomInt(0, 23);
@@ -55,19 +128,33 @@ function generateFailedAt() {
   return new Date(Date.now() - msAgo);
 }
 
-export async function seedForMerchant(merchantId, { demoPhone, demoName, count = SYNTHETIC_PAYMENT_COUNT } = {}) {
-  // Clear this merchant's OWN previous synthetic data only — never touches
-  // other merchants' documents.
-  await Payment.deleteMany({ merchant: merchantId, isSynthetic: true });
-  await Customer.deleteMany({ merchant: merchantId, isDemoCustomer: { $ne: true } });
+export async function seedForMerchant(merchantId, { demoPhone, demoName, count = SYNTHETIC_PAYMENT_COUNT, trainingCount = SYNTHETIC_TRAINING_RECORD_COUNT, force = false } = {}) {
+  // Seed once per merchant. Restarts, logins, dashboard refreshes, and repeated
+  // seed requests must not regenerate or overwrite the merchant's dataset.
+  const existingSyntheticCount = await Payment.countDocuments({ merchant: merchantId, isSynthetic: true });
+  const existingTrainingCount = await TrainingRecord.countDocuments({ merchant: merchantId, dataSource: "synthetic" });
+  if (!force && existingSyntheticCount >= count && existingTrainingCount >= trainingCount) {
+    const existingDemo = await Customer.exists({ merchant: merchantId, isDemoCustomer: true });
+    return { syntheticCount: existingSyntheticCount, trainingCount: existingTrainingCount, demoCreated: Boolean(existingDemo), alreadyInitialized: true };
+  }
 
+  // A forced re-seed is an explicit development/admin operation. It only ever
+  // touches this merchant's own synthetic data.
+  if (force) {
+    await Payment.deleteMany({ merchant: merchantId, isSynthetic: true });
+    await Customer.deleteMany({ merchant: merchantId, isDemoCustomer: false });
+    await TrainingRecord.deleteMany({ merchant: merchantId, dataSource: "synthetic" });
+  }
+
+  const paymentsToCreate = Math.max(0, count - existingSyntheticCount);
   const paymentDocs = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < paymentsToCreate; i++) {
     const customer = await Customer.create({
       merchant: merchantId,
       name: generateName(),
       phone: generatePhone(i),
       successfulPaymentsCount: generateSuccessfulPaymentsCount(),
+      previousFailures: generatePreviousFailures(),
       isDemoCustomer: false,
     });
 
@@ -75,14 +162,24 @@ export async function seedForMerchant(merchantId, { demoPhone, demoName, count =
       merchant: merchantId,
       customer: customer._id,
       amount: generateAmountPaise(),
+      paymentMethod: generatePaymentMethod(),
       status: "failed",
       failureReason: generateFailureReason(),
       retryCount: generateRetryCount(),
       isSynthetic: true,
+      dataSource: "synthetic",
       failedAt: generateFailedAt(),
     });
   }
-  await Payment.insertMany(paymentDocs);
+  if (paymentDocs.length > 0) {
+    await Payment.insertMany(paymentDocs);
+  }
+
+  const trainingRecordsToCreate = Math.max(0, trainingCount - existingTrainingCount);
+  if (trainingRecordsToCreate > 0) {
+    const trainingDocs = Array.from({ length: trainingRecordsToCreate }, () => generateTrainingRecord(merchantId));
+    await TrainingRecord.insertMany(trainingDocs);
+  }
 
   let demoCreated = false;
   const resolvedPhone = demoPhone || process.env.DEMO_PHONE;
@@ -110,9 +207,11 @@ export async function seedForMerchant(merchantId, { demoPhone, demoName, count =
       failureReason: "bank_timeout",
       retryCount: 0,
       isSynthetic: false,
+      dataSource: "razorpay_test",
     });
     demoCreated = true;
   }
 
-  return { syntheticCount: paymentDocs.length, demoCreated };
+  const finalTrainingCount = await TrainingRecord.countDocuments({ merchant: merchantId, dataSource: "synthetic" });
+  return { syntheticCount: paymentDocs.length, trainingCount: finalTrainingCount, demoCreated, alreadyInitialized: false };
 }

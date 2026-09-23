@@ -10,3 +10,8 @@ frontend/.env
 frontend/.env.local
 customer-app/.env
 customer-app/.env.local
+
+# Python ML local environment
+backend/ml/venv/
+backend/ml/__pycache__/
+*.pyc

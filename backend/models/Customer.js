@@ -8,6 +8,7 @@ const CustomerSchema = new mongoose.Schema(
     email: { type: String },
     isDemoCustomer: { type: Boolean, default: false }, // true = your real phone, used for the live demo
     successfulPaymentsCount: { type: Number, default: 0 },
+    previousFailures: { type: Number, default: 0 },
     lifetimeValue: { type: Number, default: 0 }, // sum of successful payments, in paise
     createdAt: { type: Date, default: Date.now },
   },

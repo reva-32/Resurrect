@@ -7,6 +7,8 @@ import { decideActionByRules, applyPolicy, simulateSyntheticOutcome } from "../s
 import { getAIDecision } from "../services/aiService.js";
 import { sendRecoverySMS } from "../services/smsService.js";
 import { createRecoveryPaymentLink } from "../services/razorpayService.js";
+import { transitionPayment } from "../services/paymentStateMachine.js";
+import { trainRecoveryModel, predictRecovery } from "../services/recoveryMLService.js";
 
 const router = express.Router();
 
@@ -16,6 +18,16 @@ const router = express.Router();
 // cap. Configurable via GEMINI_MAX_CALLS_PER_RUN in .env; defaults generous
 // enough to cover the whole sample dataset.
 const AI_CALLS_PER_RUN = Number(process.env.GEMINI_MAX_CALLS_PER_RUN) || 50;
+
+// Train the merchant-specific recovery model on demand.
+router.post("/train-model", async (req, res) => {
+  try {
+    const metrics = await trainRecoveryModel(req.user._id);
+    res.json({ ok: true, metrics });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 // Process ALL of the logged-in merchant's currently-failed payments through
 // rules or AI (bulk demo action — "START RECOVERY" button). useAI=false
@@ -95,6 +107,7 @@ function scheduleSimulatedResolution({ merchantId, paymentId, attemptId, failure
       await attempt.save();
 
       if (succeeded) {
+        transitionPayment(payment, "captured");
         payment.status = "recovered";
         payment.recoveredAmount = payment.amount;
         payment.recoveredAt = new Date();
@@ -105,8 +118,8 @@ function scheduleSimulatedResolution({ merchantId, paymentId, attemptId, failure
           detail: `Simulated ${action} recovery succeeded.`,
         });
       } else {
-        // Back to "failed" so the next Start Recovery run can pick the next
-        // action (another retry, an SMS, or stop once max retries is hit).
+        // Back to failed so the next recovery run can choose another action.
+        transitionPayment(payment, "failed");
         payment.status = "failed";
       }
       await payment.save();
@@ -119,7 +132,13 @@ function scheduleSimulatedResolution({ merchantId, paymentId, attemptId, failure
 async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget = { remaining: Infinity }) {
   const customer = payment.customer;
 
-  // 1. Get a recommendation — AI or rules
+  // 1. Get a recovery probability from the merchant-specific ML model.
+  // ML predicts likelihood of recovery; it does not bypass deterministic policy.
+  const prediction = await predictRecovery(payment, customer, merchantId);
+  const recoveryProbability = prediction.probability;
+  const expectedRecoveryValue = Number(((payment.amount || 0) * recoveryProbability).toFixed(2));
+
+  // 2. Get an action recommendation — AI or rules.
   let recommendedAction, reasoning, smsMessage, decidedBy, aiMeta = null;
   if (useAI && aiBudget.remaining > 0) {
     aiBudget.remaining -= 1;
@@ -143,8 +162,20 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
     decidedBy = "rules";
   }
 
-  // 2. Backend policy check — the AI (or rules) cannot bypass this
+  // 3. Backend policy check — neither AI nor ML can bypass this.
   let { finalAction, wasOverridden, overrideReason } = applyPolicy(payment, recommendedAction);
+
+  // ML is a prediction signal, not a financial/regulatory rule. These thresholds
+  // are internal prototype policy settings and are intentionally configurable.
+  if (recoveryProbability < 0.25 && finalAction !== "stop") {
+    finalAction = "stop";
+    wasOverridden = true;
+    overrideReason = "low_ml_recovery_probability";
+  } else if (recoveryProbability < 0.45 && finalAction === "retry") {
+    finalAction = "review";
+    wasOverridden = true;
+    overrideReason = "medium_ml_recovery_probability";
+  }
 
   // Explicit live-demo path: when the merchant clicks the real Razorpay-link
   // action, ensure the recovery action is link/SMS based even if the AI chose
@@ -173,9 +204,9 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
     merchant: merchantId,
     payment: payment._id,
     event: wasOverridden ? "action_rejected" : "action_approved",
-    detail: `${decidedBy === "ai" ? "AI" : "Rules"} recommended "${recommendedAction}"${
-      wasOverridden ? ` — backend overrode to "${finalAction}" (${overrideReason})` : ""
-    }. ${reasoning}`,
+    detail: `${decidedBy === "ai" ? "AI" : "Rules"} recommended "${recommendedAction}". ML estimated ${(recoveryProbability * 100).toFixed(1)}% recovery probability and ₹${(expectedRecoveryValue / 100).toFixed(2)} expected recovery. ${
+      wasOverridden ? `Backend overrode to "${finalAction}" (${overrideReason}). ` : ""
+    }${reasoning}`,
   });
 
   // 3. Execute the final action
@@ -184,7 +215,10 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
     payment: payment._id,
     customer: customer._id,
     action: finalAction,
-    decidedBy,
+    decidedBy: "ml",
+    recoveryProbability,
+    expectedRecoveryValue,
+    predictionModel: prediction.model,
     outcome: "pending",
   });
 
@@ -192,11 +226,12 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
     payment.status = "stopped";
     await payment.save();
     await AuditLog.create({ merchant: merchantId, payment: payment._id, event: "recovery_stopped", detail: reasoning });
-    return { paymentId: payment._id, action: finalAction, decidedBy, reasoning };
+    return { paymentId: payment._id, action: finalAction, decidedBy: "ml", reasoning, recoveryProbability, expectedRecoveryValue, predictionModel: prediction.model };
   }
 
   if (finalAction === "retry") {
     payment.retryCount += 1;
+    transitionPayment(payment, "processing");
     payment.status = "recovery_in_progress";
     await payment.save();
     await AuditLog.create({ merchant: merchantId, payment: payment._id, event: "retry_attempted", detail: reasoning });
@@ -214,10 +249,11 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
       });
     }
 
-    return { paymentId: payment._id, action: finalAction, decidedBy, reasoning, outcome: "pending" };
+    return { paymentId: payment._id, action: finalAction, decidedBy: "ml", reasoning, recoveryProbability, expectedRecoveryValue, predictionModel: prediction.model, outcome: "pending" };
   }
 
   if (finalAction === "sms" || finalAction === "priority_sms") {
+    transitionPayment(payment, "processing");
     payment.status = "recovery_in_progress";
 
     // The SMS always links to our branded status page, not straight to
@@ -286,7 +322,7 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
       });
     }
 
-    return { paymentId: payment._id, action: finalAction, decidedBy, reasoning, recoveryLink, outcome: "pending" };
+    return { paymentId: payment._id, action: finalAction, decidedBy: "ml", reasoning, recoveryProbability, expectedRecoveryValue, predictionModel: prediction.model, recoveryLink, outcome: "pending" };
   }
 
   // "review" — flagged for merchant attention. Still needs to resolve like
@@ -294,6 +330,7 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
   // always route here) would sit in the "failed" pool forever, getting
   // re-decided and re-logged on every future Start Recovery click without
   // ever counting toward the recovery rate in either direction.
+  transitionPayment(payment, "processing");
   payment.status = "recovery_in_progress";
   await payment.save();
 
@@ -307,7 +344,7 @@ async function processOnePayment(payment, useAI, merchantId, opts = {}, aiBudget
     });
   }
 
-  return { paymentId: payment._id, action: finalAction, decidedBy, reasoning, outcome: "pending" };
+  return { paymentId: payment._id, action: finalAction, decidedBy: "ml", reasoning, recoveryProbability, expectedRecoveryValue, predictionModel: prediction.model, outcome: "pending" };
 }
 
 export default router;

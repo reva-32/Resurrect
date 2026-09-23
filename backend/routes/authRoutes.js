@@ -2,6 +2,7 @@ import express from "express";
 import User from "../models/User.js";
 import { hashPassword, verifyPassword, signToken, isValidEmail, isStrongPassword } from "../services/authService.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
+import { seedForMerchant } from "../services/seedService.js";
 
 const router = express.Router();
 
@@ -23,6 +24,10 @@ router.post("/signup", async (req, res) => {
 
     const passwordHash = await hashPassword(password);
     const user = await User.create({ businessName, name, email, passwordHash });
+
+    // Give every new merchant their own persistent demo dataset once. The
+    // seeder is idempotent, so later restarts/logins never regenerate it.
+    await seedForMerchant(user._id, {});
 
     const token = signToken(user);
     res.status(201).json({

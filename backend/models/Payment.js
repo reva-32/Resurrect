@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { PAYMENT_STATES } from "../services/paymentStateMachine.js";
 
 const FAILURE_REASONS = [
   "bank_timeout",
@@ -16,11 +17,23 @@ const PaymentSchema = new mongoose.Schema(
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
     amount: { type: Number, required: true }, // in paise (₹1 = 100)
     currency: { type: String, default: "INR" },
+    paymentMethod: { type: String, enum: ["card", "upi", "netbanking", "wallet"], default: "upi" },
 
+    // Legacy recovery workflow status. Kept separate from paymentState so
+    // "recovery_in_progress" does not get mixed with provider states.
     status: {
       type: String,
       enum: ["failed", "recovery_in_progress", "recovered", "stopped"],
       default: "failed",
+    },
+
+    // Provider/payment lifecycle state. This is the state machine we use for
+    // webhook-driven payment correctness.
+    paymentState: {
+      type: String,
+      enum: PAYMENT_STATES,
+      default: "failed",
+      index: true,
     },
 
     failureReason: { type: String, enum: FAILURE_REASONS, default: "unknown" },
@@ -40,6 +53,7 @@ const PaymentSchema = new mongoose.Schema(
     recoveredAt: { type: Date },
 
     isSynthetic: { type: Boolean, default: true }, // false only for the real demo case(s)
+    dataSource: { type: String, enum: ["synthetic", "razorpay_test"], default: "synthetic", index: true },
   },
   { timestamps: true }
 );

@@ -39,13 +39,12 @@ router.post("/assistant", async (req, res) => {
   }
 });
 
-// "Add Data" button on the dashboard — (re)generates the synthetic dataset
-// scoped to the logged-in merchant only. A fresh signup starts at zero
-// until this is called, which is the point: real numbers, not shared demo data.
+// "Add Data" / initialization endpoint. It is idempotent: an existing merchant
+// keeps the same synthetic dataset unless an explicit force=true request is made.
 router.post("/seed", async (req, res) => {
   try {
-    const { demoPhone, demoName } = req.body || {};
-    const result = await seedForMerchant(req.user._id, { demoPhone, demoName });
+    const { demoPhone, demoName, force } = req.body || {};
+    const result = await seedForMerchant(req.user._id, { demoPhone, demoName, force: force === true });
     res.json(result);
   } catch (err) {
     console.error("[dashboard] seed error:", err.message);

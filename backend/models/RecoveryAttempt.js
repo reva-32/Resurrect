@@ -13,7 +13,11 @@ const RecoveryAttemptSchema = new mongoose.Schema(
     },
 
     // Where the decision came from — lets you compare rule-only vs AI-assisted at demo time
-    decidedBy: { type: String, enum: ["rules", "ai"], required: true },
+    decidedBy: { type: String, enum: ["rules", "ai", "ml"], required: true },
+
+    recoveryProbability: { type: Number, min: 0, max: 1 },
+    expectedRecoveryValue: { type: Number, min: 0 },
+    predictionModel: { type: String },
 
     outcome: {
       type: String,

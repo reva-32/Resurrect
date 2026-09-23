@@ -36,9 +36,9 @@ async function run() {
     process.exit(1);
   }
 
-  console.log(`[seed] seeding data for merchant: ${merchant.businessName} (${merchant.email})`);
+  console.log(`[seed] initializing data for merchant: ${merchant.businessName} (${merchant.email})`);
   const result = await seedForMerchant(merchant._id, {});
-  console.log(`[seed] inserted ${result.syntheticCount} synthetic failed payments.`);
+  console.log(`[seed] merchant has ${result.syntheticCount} synthetic failed payments.`);
   console.log(result.demoCreated ? "[seed] created real demo customer." : "[seed] DEMO_PHONE not set — skipped real demo customer.");
 
   await mongoose.disconnect();

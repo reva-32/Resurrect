@@ -3,6 +3,8 @@ import { verifyWebhookSignature } from "../services/razorpayService.js";
 import Payment from "../models/Payment.js";
 import RecoveryAttempt from "../models/RecoveryAttempt.js";
 import AuditLog from "../models/AuditLog.js";
+import WebhookEvent from "../models/WebhookEvent.js";
+import { transitionPayment } from "../services/paymentStateMachine.js";
 
 const router = express.Router();
 
@@ -23,9 +25,33 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
     return res.status(400).json({ error: "Invalid JSON payload" });
   }
 
-  console.log(`[webhook] received ${event.event || "unknown_event"}`);
+  const eventId = req.headers["x-razorpay-event-id"];
+  if (!eventId) {
+    return res.status(400).json({ error: "Missing Razorpay event ID" });
+  }
 
+  console.log(`[webhook] received ${event.event || "unknown_event"} (${eventId})`);
+
+  // Claim the provider event before touching payment data. The unique index
+  // makes duplicate webhook deliveries safe even when they arrive together.
   try {
+    try {
+      await WebhookEvent.create({ eventId, event: event.event || "unknown_event" });
+    } catch (claimErr) {
+      if (claimErr?.code === 11000) {
+        const existing = await WebhookEvent.findOne({ eventId });
+        if (existing?.status === "failed") {
+          existing.status = "processing";
+          existing.error = undefined;
+          await existing.save();
+        } else {
+          return res.json({ received: true, duplicate: true, status: existing?.status || "processing" });
+        }
+      } else {
+        throw claimErr;
+      }
+    }
+
     if (event.event === "payment_link.paid" || event.event === "payment.captured") {
       const paymentLinkEntity = event.payload?.payment_link?.entity;
       const paymentEntity = event.payload?.payment?.entity;
@@ -48,12 +74,17 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
 
       if (!payment) {
         console.warn("[webhook] no matching payment found", { paymentLinkId, internalPaymentId });
-        return res.status(200).json({ received: true, matched: false });
+        await WebhookEvent.updateOne(
+          { eventId },
+          { $set: { status: "processed", processedAt: new Date(), error: "No matching payment" } }
+        );
+        return res.status(200).json({ received: true, matched: false, duplicate: false });
       }
 
       console.log(`[webhook] matched payment ${payment._id}`);
 
       if (payment.status !== "recovered") {
+        transitionPayment(payment, "captured");
         payment.status = "recovered";
         payment.recoveredAmount = Number(
           paymentEntity?.amount || paymentLinkEntity?.amount_paid || payment.amount
@@ -86,10 +117,22 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
       }
     }
 
+    await WebhookEvent.updateOne(
+      { eventId },
+      { $set: { status: "processed", processedAt: new Date(), error: undefined } }
+    );
+
     console.log(`[webhook] processed ${event.event || "unknown_event"}`);
-    res.json({ received: true });
+    res.json({ received: true, duplicate: false });
   } catch (err) {
     console.error("[webhook] processing error:", err.message);
+    await WebhookEvent.updateOne(
+      { eventId },
+      { $set: { status: "failed", error: err.message } }
+    ).catch(() => {});
+    if (err?.code === "INVALID_PAYMENT_TRANSITION") {
+      return res.status(409).json({ error: err.message });
+    }
     res.status(500).json({ error: "Webhook processing failed" });
   }
 });

@@ -1,3 +1,8 @@
 node_modules/
 .env
 *.log
+
+# Python ML local environment
+ml/venv/
+ml/__pycache__/
+*.pyc
