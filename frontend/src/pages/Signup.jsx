@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Signup() {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ businessName: "", name: "", email: "", password: "" });
+  const [form, setForm] = useState({ businessName: "", name: "", email: "", password: "", businessType: "hybrid" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -48,6 +48,18 @@ export default function Signup() {
                 className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                 placeholder="Acme Retail Pvt Ltd"
               />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Business type</label>
+              <select
+                value={form.businessType}
+                onChange={update("businessType")}
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+              >
+                <option value="retail">Retail / customer payments</option>
+                <option value="b2b">B2B / MSME</option>
+                <option value="hybrid">Hybrid — both</option>
+              </select>
             </div>
             <div>
               <label className="text-xs font-medium text-ink/60 dark:text-white/60 block mb-1.5">Your name</label>

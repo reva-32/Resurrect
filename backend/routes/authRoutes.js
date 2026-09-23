@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
   try {
-    const { businessName, name, email, password } = req.body;
+    const { businessName, name, email, password, businessType = "hybrid" } = req.body;
     if (!businessName || !name || !email || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
@@ -32,7 +32,7 @@ router.post("/signup", async (req, res) => {
     const token = signToken(user);
     res.status(201).json({
       token,
-      user: { id: user._id, businessName: user.businessName, name: user.name, email: user.email },
+      user: { id: user._id, businessName: user.businessName, name: user.name, email: user.email, businessType: user.businessType },
     });
   } catch (err) {
     console.error("[auth] signup error:", err.message);
@@ -56,7 +56,7 @@ router.post("/login", async (req, res) => {
     const token = signToken(user);
     res.json({
       token,
-      user: { id: user._id, businessName: user.businessName, name: user.name, email: user.email },
+      user: { id: user._id, businessName: user.businessName, name: user.name, email: user.email, businessType: user.businessType },
     });
   } catch (err) {
     console.error("[auth] login error:", err.message);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from "lucide-react";
-import { getSettingsStatus, seedData } from "../api/client";
+import { getSettingsStatus, seedData, updateBusinessType } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -28,6 +28,8 @@ export default function Settings() {
   const [demoName, setDemoName] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState("");
+  const [businessType, setBusinessType] = useState(user?.businessType || "hybrid");
+  const [typeMessage, setTypeMessage] = useState("");
 
   useEffect(() => {
     getSettingsStatus().then(setStatus).catch(() => setStatus(null));
@@ -87,6 +89,40 @@ export default function Settings() {
         </div>
 
         <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6">
+          <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium mb-4">Revenue workflow</div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <div>
+              <label className="text-xs text-ink/50 dark:text-white/50 block mb-1.5">Business type</label>
+              <select
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="retail">Retail / customer payments</option>
+                <option value="b2b">B2B / MSME</option>
+                <option value="hybrid">Hybrid — both</option>
+              </select>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await updateBusinessType(businessType);
+                  setTypeMessage("Business type updated.");
+                  window.setTimeout(() => window.location.reload(), 400);
+                } catch {
+                  setTypeMessage("Couldn't update business type.");
+                }
+              }}
+              className="bg-ink dark:bg-white text-white dark:text-ink rounded-lg px-4 py-2 text-sm font-medium"
+            >
+              Save
+            </button>
+          </div>
+          {typeMessage && <div className="text-xs text-ink/50 dark:text-white/50 mt-2">{typeMessage}</div>}
+          <p className="text-xs text-ink/40 dark:text-white/40 mt-2">B2B and Hybrid merchants get access to the Receivables workflow.</p>
+        </div>
+
+        <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6">
           <div className="flex items-center gap-2 mb-1">
             <RefreshCw size={16} className="text-accent" />
             <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium">Sample data</div>
@@ -117,6 +153,40 @@ export default function Settings() {
             </button>
           </form>
           {seedMessage && <div className="text-xs text-ink/50 dark:text-white/50">{seedMessage}</div>}
+        </div>
+
+        <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6">
+          <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium mb-4">Revenue workflow</div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <div>
+              <label className="text-xs text-ink/50 dark:text-white/50 block mb-1.5">Business type</label>
+              <select
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="w-full border border-black/10 dark:border-white/15 bg-white dark:bg-panel2 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="retail">Retail / customer payments</option>
+                <option value="b2b">B2B / MSME</option>
+                <option value="hybrid">Hybrid — both</option>
+              </select>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await updateBusinessType(businessType);
+                  setTypeMessage("Business type updated.");
+                  window.setTimeout(() => window.location.reload(), 400);
+                } catch {
+                  setTypeMessage("Couldn't update business type.");
+                }
+              }}
+              className="bg-ink dark:bg-white text-white dark:text-ink rounded-lg px-4 py-2 text-sm font-medium"
+            >
+              Save
+            </button>
+          </div>
+          {typeMessage && <div className="text-xs text-ink/50 dark:text-white/50 mt-2">{typeMessage}</div>}
+          <p className="text-xs text-ink/40 dark:text-white/40 mt-2">B2B and Hybrid merchants get access to the Receivables workflow.</p>
         </div>
 
         <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6">

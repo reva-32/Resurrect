@@ -1,5 +1,6 @@
 import express from "express";
 import { requireAuth } from "../middleware/authMiddleware.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -18,3 +19,18 @@ router.get("/status", requireAuth, async (req, res) => {
 });
 
 export default router;
+
+router.put("/business-type", async (req, res) => {
+  try {
+    const { businessType } = req.body || {};
+    if (!["retail", "b2b", "hybrid"].includes(businessType)) {
+      return res.status(400).json({ error: "Invalid business type" });
+    }
+    req.user.businessType = businessType;
+    await User.updateOne({ _id: req.user._id }, { $set: { businessType } });
+    res.json({ businessType });
+  } catch (err) {
+    console.error("[settings] business type update error:", err.message);
+    res.status(500).json({ error: "Failed to update business type" });
+  }
+});

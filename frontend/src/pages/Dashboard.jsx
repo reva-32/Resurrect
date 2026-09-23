@@ -935,6 +935,11 @@ export default function Dashboard() {
             >
               {running ? "Processing…" : "Start Recovery"}
             </button>
+            {(user?.businessType === "b2b" || user?.businessType === "hybrid" || !user?.businessType) && (
+              <Link to="/receivables" className="hidden sm:inline-flex text-sm text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white">
+                Receivables
+              </Link>
+            )}
             <ThemeToggle />
             <button
               onClick={() => setGuideOpen(true)}

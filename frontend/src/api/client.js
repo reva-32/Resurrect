@@ -37,3 +37,14 @@ export const markPaymentViewed = (id) => client.post(`/public/payments/${id}/vie
 
 // --- Settings / onboarding status ---
 export const getSettingsStatus = () => client.get("/settings/status").then((r) => r.data);
+
+// --- B2B / receivables ---
+export const getReceivablesSummary = () => client.get("/receivables/summary").then((r) => r.data);
+export const getInvoices = (status) => client.get("/receivables/invoices", { params: status ? { status } : {} }).then((r) => r.data);
+export const createBusinessCustomer = (payload) => client.post("/receivables/customers", payload).then((r) => r.data);
+export const createInvoice = (payload) => client.post("/receivables/invoices", payload).then((r) => r.data);
+export const runInvoiceRecovery = (id) => client.post(`/receivables/invoices/${id}/recover`).then((r) => r.data);
+export const recordInvoicePayment = (id, amount) => client.post(`/receivables/invoices/${id}/payment`, { amount }).then((r) => r.data);
+export const seedReceivables = (force = false) => client.post("/receivables/seed", { force }).then((r) => r.data);
+
+export const updateBusinessType = (businessType) => client.put("/settings/business-type", { businessType }).then((r) => r.data);

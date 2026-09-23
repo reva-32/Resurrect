@@ -11,6 +11,7 @@ import webhookRoutes from "./routes/webhookRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
+import receivableRoutes from "./routes/receivableRoutes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 
 dotenv.config();
@@ -69,6 +70,7 @@ app.use("/api/payments", apiLimiter, requireAuth, paymentRoutes);
 app.use("/api/recovery", apiLimiter, requireAuth, recoveryRoutes);
 app.use("/api/dashboard", apiLimiter, requireAuth, dashboardRoutes);
 app.use("/api/settings", apiLimiter, settingsRoutes);
+app.use("/api/receivables", apiLimiter, requireAuth, receivableRoutes);
 
 const PORT = process.env.PORT || 5000;
 

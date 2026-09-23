@@ -9,6 +9,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import PayStatus from "./pages/PayStatus";
+import Receivables from "./pages/Receivables";
 
 export default function App() {
   return (
@@ -27,6 +28,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/receivables"
+            element={
+              <ProtectedRoute>
+                <Receivables />
               </ProtectedRoute>
             }
           />
