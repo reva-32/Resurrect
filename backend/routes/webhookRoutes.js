@@ -5,6 +5,7 @@ import RecoveryAttempt from "../models/RecoveryAttempt.js";
 import AuditLog from "../models/AuditLog.js";
 import WebhookEvent from "../models/WebhookEvent.js";
 import { transitionPayment } from "../services/paymentStateMachine.js";
+import ProviderTransaction from "../models/ProviderTransaction.js";
 
 const router = express.Router();
 
@@ -52,6 +53,23 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
       }
     }
 
+    if (["payment.refunded", "payment.dispute.created"].includes(event.event)) {
+      const paymentEntity = event.payload?.payment?.entity;
+      const paymentId = paymentEntity?.id;
+      const payment = paymentId ? await Payment.findOne({ "razorpay.paymentId": paymentId }) : null;
+      if (!payment) {
+        await WebhookEvent.updateOne({ eventId }, { $set: { status: "processed", processedAt: new Date(), error: "No matching payment" } });
+        return res.status(200).json({ received: true, matched: false });
+      }
+      const nextState = event.event === "payment.refunded" ? "refunded" : "disputed";
+      if (payment.paymentState !== nextState) transitionPayment(payment, nextState);
+      payment.status = "stopped";
+      await payment.save();
+      await AuditLog.create({ merchant: payment.merchant, payment: payment._id, event: event.event === "payment.refunded" ? "payment_refunded" : "payment_disputed", detail: `Razorpay webhook moved payment to ${nextState}; recovery was stopped.`, metadata: { eventId } });
+      await WebhookEvent.updateOne({ eventId }, { $set: { status: "processed", processedAt: new Date() } });
+      return res.json({ received: true, processed: true, state: nextState });
+    }
+
     if (event.event === "payment_link.paid" || event.event === "payment.captured") {
       const paymentLinkEntity = event.payload?.payment_link?.entity;
       const paymentEntity = event.payload?.payment?.entity;
@@ -80,6 +98,15 @@ router.post("/razorpay", express.raw({ type: "*/*" }), async (req, res) => {
         );
         return res.status(200).json({ received: true, matched: false, duplicate: false });
       }
+
+      const providerAmount = Number(paymentEntity?.amount || paymentLinkEntity?.amount_paid || payment.amount);
+      const providerStatus = event.event === "payment.captured" || event.event === "payment_link.paid" ? "captured" : "unknown";
+      const externalPaymentId = paymentEntity?.id || paymentLinkEntity?.id || `event_${eventId}`;
+      await ProviderTransaction.findOneAndUpdate(
+        { merchant: payment.merchant, externalPaymentId },
+        { merchant: payment.merchant, payment: payment._id, externalPaymentId, paymentLinkId, amount: providerAmount, currency: payment.currency, status: providerStatus, dataSource: "razorpay_test", observedAt: new Date() },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
 
       console.log(`[webhook] matched payment ${payment._id}`);
 

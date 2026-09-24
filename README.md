@@ -426,3 +426,23 @@ The long-term goal is to evolve Resurrect from a failed-payment recovery tool in
 ### Resurrect in one line
 
 **Detect the revenue at risk. Decide how to recover it. Execute safely. Verify the payment. Measure what came back.**
+
+## Checkpoint 4 — Reconciliation
+
+Resurrect now includes a reconciliation workflow that compares internal payment records with provider/test transaction records and surfaces matched, amount-mismatch, status-mismatch, and missing records. See `CHECKPOINT_4_RECONCILIATION.md`.
+
+## Checkpoint 5 — Production Readiness
+
+The final checkpoint adds focused reconciliation tests, a database-aware health endpoint, production Dockerfiles for the backend and frontend, Nginx SPA routing, and a Docker Compose setup for the application. MongoDB Atlas remains the external database.
+
+See `CHECKPOINT_5_POLISH.md` for the final run and demo flow.
+
+## Engineering evidence
+
+Resurrect separates **verified provider outcomes** from synthetic demo outcomes. Dashboard recovered revenue only includes verified Razorpay test transactions; synthetic recovery is shown separately.
+
+The payment webhook is idempotent by Razorpay event ID and rejects unmatched internal payments before touching provider records. Refund/dispute events stop the recovery workflow. B2B invoices validate partial payments and remaining balances.
+
+The reconciliation demo uses controlled provider snapshots to exercise matched, amount mismatch, status mismatch, missing-provider, and missing-internal cases. These are intentionally simulated test cases, not production discrepancy claims.
+
+The ML pipeline can be benchmarked on a held-out synthetic evaluation set. This validates the implementation and benchmarking pipeline; it does **not** establish real-world recovery lift.

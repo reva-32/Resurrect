@@ -48,3 +48,9 @@ export const recordInvoicePayment = (id, amount) => client.post(`/receivables/in
 export const seedReceivables = (force = false) => client.post("/receivables/seed", { force }).then((r) => r.data);
 
 export const updateBusinessType = (businessType) => client.put("/settings/business-type", { businessType }).then((r) => r.data);
+
+// --- Fintech operations / reconciliation ---
+export const getReconciliationSummary = () => client.get("/reconciliation/summary").then((r) => r.data);
+export const getReconciliationResults = () => client.get("/reconciliation/results").then((r) => r.data);
+export const runReconciliation = () => client.post("/reconciliation/run").then((r) => r.data);
+export const seedReconciliationProviderData = () => client.post("/reconciliation/seed").then((r) => r.data);

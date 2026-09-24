@@ -15,7 +15,9 @@ export async function getDashboardMetrics(merchantId) {
     totalFailed,
     revenueAtRiskAgg,
     recoveredAgg,
+    simulatedRecoveredAgg,
     recoveredPaymentCount,
+    simulatedRecoveredPaymentCount,
     smsSentCount,
     retryAttemptsCount,
     successfulRecoveries,
@@ -29,10 +31,15 @@ export async function getDashboardMetrics(merchantId) {
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     Payment.aggregate([
-      { $match: { merchant, status: "recovered" } },
+      { $match: { merchant, status: "recovered", isSynthetic: false, dataSource: "razorpay_test" } },
       { $group: { _id: null, total: { $sum: "$recoveredAmount" } } },
     ]),
-    Payment.countDocuments({ merchant, status: "recovered" }),
+    Payment.aggregate([
+      { $match: { merchant, status: "recovered", isSynthetic: true, dataSource: "synthetic" } },
+      { $group: { _id: null, total: { $sum: "$recoveredAmount" } } },
+    ]),
+    Payment.countDocuments({ merchant, status: "recovered", isSynthetic: false }),
+    Payment.countDocuments({ merchant, status: "recovered", isSynthetic: true }),
     SMSLog.countDocuments({ merchant }),
     RecoveryAttempt.countDocuments({ merchant, action: "retry" }),
     RecoveryAttempt.countDocuments({ merchant, outcome: "success" }),
@@ -71,6 +78,7 @@ export async function getDashboardMetrics(merchantId) {
 
   const revenueAtRisk = revenueAtRiskAgg[0]?.total || 0;
   const totalRecovered = recoveredAgg[0]?.total || 0;
+  const simulatedRecovered = simulatedRecoveredAgg[0]?.total || 0;
   const totalAttempted = successfulRecoveries + failedRecoveries;
   const recoveryRate = totalAttempted > 0 ? successfulRecoveries / totalAttempted : 0;
 
@@ -123,7 +131,10 @@ export async function getDashboardMetrics(merchantId) {
   return {
     revenueAtRisk,
     totalRecovered,
+    verifiedRecovered: totalRecovered,
+    simulatedRecovered,
     recoveredPaymentCount,
+    simulatedRecoveredPaymentCount,
     recoveryRate,
     totalFailedPayments: totalFailed,
     smsSentCount,

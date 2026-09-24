@@ -130,6 +130,11 @@ router.post("/invoices", async (req, res) => {
     if (!businessCustomer || !invoiceNumber || !amount || !issueDate || !dueDate) {
       return res.status(400).json({ error: "Customer, invoice number, amount, issue date and due date are required" });
     }
+    const invoiceAmount = Number(amount);
+    const initialPaid = Number(amountPaid);
+    if (!Number.isFinite(invoiceAmount) || invoiceAmount <= 0 || !Number.isFinite(initialPaid) || initialPaid < 0 || initialPaid > invoiceAmount) {
+      return res.status(400).json({ error: "Amount paid must be between ₹0 and the invoice amount." });
+    }
 
     const customer = await BusinessCustomer.findOne({ _id: businessCustomer, merchant: req.user._id });
     if (!customer) return res.status(404).json({ error: "Business customer not found" });
@@ -138,16 +143,16 @@ router.post("/invoices", async (req, res) => {
       merchant: req.user._id,
       businessCustomer,
       invoiceNumber,
-      amount: Number(amount),
-      amountPaid: Number(amountPaid),
+      amount: invoiceAmount,
+      amountPaid: initialPaid,
       issueDate,
       dueDate,
-      status: deriveStatus({ amount: Number(amount), amountPaid: Number(amountPaid), dueDate }, new Date()),
+      status: deriveStatus({ amount: invoiceAmount, amountPaid: initialPaid, dueDate }, new Date()),
       dataSource: "merchant",
     });
 
-    customer.totalBilled += Number(amount);
-    customer.totalPaid += Number(amountPaid);
+    customer.totalBilled += invoiceAmount;
+    customer.totalPaid += initialPaid;
     await customer.save();
 
     await ReceivableAuditLog.create({
@@ -201,7 +206,8 @@ router.post("/invoices/:id/payment", async (req, res) => {
     const invoice = await Invoice.findOne({ _id: req.params.id, merchant: req.user._id });
     if (!invoice) return res.status(404).json({ error: "Invoice not found" });
     const remaining = Math.max(0, invoice.amount - invoice.amountPaid);
-    const applied = Math.min(remaining, amount);
+    if (amount > remaining) return res.status(400).json({ error: `Payment exceeds the remaining balance of ₹${(remaining / 100).toLocaleString("en-IN")}.` });
+    const applied = amount;
     invoice.amountPaid += applied;
     invoice.status = deriveStatus(invoice, new Date());
     await invoice.save();

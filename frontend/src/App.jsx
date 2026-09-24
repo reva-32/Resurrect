@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import PayStatus from "./pages/PayStatus";
 import Receivables from "./pages/Receivables";
+import Reconciliation from "./pages/Reconciliation";
 
 export default function App() {
   return (
@@ -36,6 +37,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Receivables />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reconciliation"
+            element={
+              <ProtectedRoute>
+                <Reconciliation />
               </ProtectedRoute>
             }
           />

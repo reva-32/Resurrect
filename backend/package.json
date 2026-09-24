@@ -10,7 +10,9 @@
     "seed": "node seed/seedDataset.js",
     "test:state": "node --test tests/paymentStateMachine.test.js",
     "test:ml": "node --test tests/recoveryMLService.test.js",
-    "test": "node --test tests/paymentStateMachine.test.js tests/recoveryMLService.test.js"
+    "test": "node --test tests/paymentStateMachine.test.js tests/recoveryMLService.test.js tests/reconciliationService.test.js",
+    "test:reconciliation": "node --test tests/reconciliationService.test.js",
+    "benchmark:recovery": "node ml/benchmark_rules_vs_ml.js"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

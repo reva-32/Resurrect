@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
-import { connectDB } from "./config/db.js";
+import { connectDB, getDatabaseStatus } from "./config/db.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import recoveryRoutes from "./routes/recoveryRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
@@ -12,6 +12,7 @@ import authRoutes from "./routes/authRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import receivableRoutes from "./routes/receivableRoutes.js";
+import reconciliationRoutes from "./routes/reconciliationRoutes.js";
 import { requireAuth } from "./middleware/authMiddleware.js";
 
 dotenv.config();
@@ -60,7 +61,16 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.get("/api/health", (req, res) => {
+  const database = getDatabaseStatus();
+  const ok = database === "connected";
+  res.status(ok ? 200 : 503).json({
+    ok,
+    service: "resurrect-backend",
+    database,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/public", apiLimiter, publicRoutes);
@@ -71,6 +81,7 @@ app.use("/api/recovery", apiLimiter, requireAuth, recoveryRoutes);
 app.use("/api/dashboard", apiLimiter, requireAuth, dashboardRoutes);
 app.use("/api/settings", apiLimiter, settingsRoutes);
 app.use("/api/receivables", apiLimiter, requireAuth, receivableRoutes);
+app.use("/api/reconciliation", apiLimiter, requireAuth, reconciliationRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -8,3 +8,8 @@ export async function connectDB() {
   await mongoose.connect(uri);
   console.log("[db] connected to MongoDB");
 }
+
+export function getDatabaseStatus() {
+  const states = ["disconnected", "connected", "connecting", "disconnecting"];
+  return states[mongoose.connection.readyState] || "unknown";
+}

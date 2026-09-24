@@ -940,6 +940,9 @@ export default function Dashboard() {
                 Receivables
               </Link>
             )}
+            <Link to="/reconciliation" className="hidden sm:inline-flex text-sm text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white">
+              Reconciliation
+            </Link>
             <ThemeToggle />
             <button
               onClick={() => setGuideOpen(true)}
@@ -988,9 +991,13 @@ export default function Dashboard() {
 
         {metrics && (
           <>
+            <div className="mb-4 rounded-xl border border-gold/20 bg-gold/5 px-4 py-3 text-xs text-black/60 dark:text-white/55">
+              <strong className="text-ink dark:text-white">Data trust:</strong> Recovered revenue counts only verified Razorpay test transactions. Synthetic recovery is tracked separately so simulated outcomes never look like real money recovered.
+              {metrics.simulatedRecovered > 0 && <span className="ml-1">Simulated recovered: {rupees(metrics.simulatedRecovered)}.</span>}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <StatCard icon={AlertTriangle} label="Revenue at risk" value={rupees(metrics.revenueAtRisk)} tone="risk" />
-              <StatCard icon={CheckCircle2} label="Recovered" value={rupees(metrics.totalRecovered)} tone="recovered" />
+              <StatCard icon={CheckCircle2} label="Verified recovered" value={rupees(metrics.verifiedRecovered ?? metrics.totalRecovered)} tone="recovered" />
               <StatCard icon={Percent} label="Recovery rate" value={pct(metrics.recoveryRate)} />
               <StatCard icon={XCircle} label="Failed payments" value={metrics.totalFailedPayments} />
               <StatCard icon={MessageSquare} label="SMS sent" value={metrics.smsSentCount} />

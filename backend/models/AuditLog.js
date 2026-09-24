@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const AuditLogSchema = new mongoose.Schema(
   {
     merchant: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", required: true },
+    payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
     event: {
       type: String,
       enum: [
@@ -16,7 +16,10 @@ const AuditLogSchema = new mongoose.Schema(
         "link_opened",
         "retry_attempted",
         "payment_recovered",
+        "payment_refunded",
+        "payment_disputed",
         "recovery_stopped",
+        "reconciliation_run",
       ],
       required: true,
     },
