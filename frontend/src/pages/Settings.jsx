@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { getSettingsStatus, seedData, updateBusinessType } from "../api/client";
 import { useAuth } from "../context/AuthContext";
-import ThemeToggle from "../components/ThemeToggle";
+import AppShell from "../components/AppShell";
 
 function StatusRow({ ok, label, hint }) {
   return (
@@ -56,20 +56,8 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white">
-      <header className="border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-[#0B0D12]/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-ink/50 hover:text-ink dark:text-white/50 dark:hover:text-white">
-              <ArrowLeft size={18} />
-            </Link>
-            <div className="font-display font-bold">Business settings</div>
-          </div>
-          <ThemeToggle />
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+    <AppShell title="Settings" subtitle="Business configuration">
+      <div className="max-w-3xl space-y-6">
         <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6">
           <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium mb-4">Business profile</div>
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -238,7 +226,7 @@ export default function Settings() {
             <div className="text-sm text-ink/40 dark:text-white/40 py-4">Couldn't load status — is the backend running?</div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

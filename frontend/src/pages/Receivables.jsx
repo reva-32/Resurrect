@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Building2, Clock3, AlertTriangle, CheckCircle2, Plus, RefreshCw, Send, CreditCard } from "lucide-react";
+import { Building2, Clock3, AlertTriangle, CheckCircle2, Plus, RefreshCw, Send, CreditCard } from "lucide-react";
 import { getInvoices, getReceivablesSummary, runInvoiceRecovery, recordInvoicePayment, seedReceivables } from "../api/client";
 import { useAuth } from "../context/AuthContext";
-import ThemeToggle from "../components/ThemeToggle";
+import AppShell from "../components/AppShell";
 
 const rupees = (paise) => `₹${((paise || 0) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -15,14 +15,14 @@ const statusLabel = {
   paid: "Paid",
 };
 
-function Stat({ icon: Icon, label, value, tone = "" }) {
+function Stat({ icon: Icon, label, value, tone = "text-accent" }) {
   return (
-    <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 p-5 shadow-soft dark:shadow-soft-dark">
-      <div className={`w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-3 ${tone}`}>
-        <Icon size={17} />
+    <div className="px-5 py-4">
+      <div className={`flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-black/40 dark:text-white/35 font-medium mb-2`}>
+        <Icon size={12} className={tone} />
+        {label}
       </div>
-      <div className="text-xs uppercase tracking-wide text-black/45 dark:text-white/40 mb-1">{label}</div>
-      <div className="text-2xl font-display font-bold">{value}</div>
+      <div className={`text-xl font-display font-bold tabular-nums ${tone}`}>{value}</div>
     </div>
   );
 }
@@ -90,51 +90,33 @@ export default function Receivables() {
 
   if (!isReceivables) {
     return (
-      <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white flex items-center justify-center p-6">
-        <div className="max-w-md text-center">
-          <Building2 size={32} className="mx-auto text-accent mb-4" />
-          <h1 className="font-display text-2xl font-bold mb-2">Receivables are for B2B/MSME workflows</h1>
-          <p className="text-sm text-black/55 dark:text-white/50 mb-5">Switch this merchant to Hybrid in settings if you want both payment recovery and invoice recovery.</p>
-          <Link to="/dashboard" className="text-accent font-medium">Back to dashboard</Link>
+      <AppShell title="Receivables">
+        <div className="flex items-center justify-center py-16">
+          <div className="max-w-md text-center">
+            <Building2 size={32} className="mx-auto text-accent mb-4" />
+            <h1 className="font-display text-2xl font-bold mb-2">Receivables are for B2B/MSME workflows</h1>
+            <p className="text-sm text-black/55 dark:text-white/50 mb-5">Switch this merchant to Hybrid in settings if you want both payment recovery and invoice recovery.</p>
+            <Link to="/settings" className="text-accent font-medium">Go to settings</Link>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white">
-      <header className="border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-[#0B0D12]/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-black/45 dark:text-white/45 hover:text-black dark:hover:text-white"><ArrowLeft size={18} /></Link>
-            <div>
-              <div className="font-display font-extrabold text-lg"><span className="text-accent">Resurrect</span> · Receivables</div>
-              <div className="text-xs text-black/40 dark:text-white/40">B2B / MSME revenue recovery</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/settings" className="text-sm text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white">Settings</Link>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-accent font-semibold">Invoice recovery</div>
-            <h1 className="font-display text-2xl font-bold mt-1">Keep receivables moving</h1>
-            <p className="text-sm text-black/50 dark:text-white/45 mt-1">Track invoices, overdue exposure and the next recovery action.</p>
-          </div>
-          <button onClick={seed} className="flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-4 py-2.5 rounded-xl text-sm font-medium">
-            <Plus size={16} /> Load demo invoices
-          </button>
-        </div>
-
+    <AppShell
+      title="Receivables"
+      subtitle="B2B / MSME invoice recovery"
+      actions={
+        <button onClick={seed} className="flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap">
+          <Plus size={15} /> Load demo invoices
+        </button>
+      }
+    >
         {message && <div className="mb-5 rounded-xl bg-accent/5 border border-accent/15 px-4 py-3 text-sm">{message}</div>}
 
         {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 border border-black/[0.08] dark:border-white/10 rounded-lg divide-x divide-y divide-black/[0.08] dark:divide-white/10 mb-6 overflow-hidden">
             <Stat icon={CreditCard} label="Outstanding" value={rupees(summary.amounts.outstanding)} />
             <Stat icon={Clock3} label="Due soon" value={rupees(summary.amounts.dueSoon)} />
             <Stat icon={AlertTriangle} label="Overdue" value={rupees(summary.amounts.overdue)} tone="text-risk" />
@@ -219,7 +201,6 @@ export default function Receivables() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }

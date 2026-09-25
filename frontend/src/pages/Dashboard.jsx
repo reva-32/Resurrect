@@ -16,6 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { Link } from "react-router-dom";
+import AppShell from "../components/AppShell";
 import {
   LogOut,
   Percent,
@@ -74,18 +75,28 @@ const ACTION_LABELS = {
 // polling closely so the merchant sees an outcome land without refreshing.
 const UNRESOLVED_STATUSES = new Set(["failed", "recovery_in_progress"]);
 
+// A single ledger-style cell, meant to sit inside StatRow's divided grid —
+// not its own card. Keeps the same props every call site already passes.
 function StatCard({ icon: Icon, label, value, tone = "default" }) {
   const toneClass =
     tone === "risk" ? "text-risk" : tone === "recovered" ? "text-recovered" : "text-ink dark:text-white";
-  const bgClass =
-    tone === "risk" ? "bg-risk/10" : tone === "recovered" ? "bg-recovered/10" : "bg-accent/10";
   return (
-    <div className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-5">
-      <div className={`w-9 h-9 rounded-xl ${bgClass} ${toneClass} flex items-center justify-center mb-3`}>
-        <Icon size={16} />
+    <div className="px-5 py-4">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-black/40 dark:text-white/35 font-medium mb-2">
+        <Icon size={12} className={toneClass} />
+        {label}
       </div>
-      <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/40 font-medium mb-1">{label}</div>
-      <div className={`text-2xl font-display font-bold ${toneClass}`}>{value}</div>
+      <div className={`text-xl font-display font-bold tabular-nums ${toneClass}`}>{value}</div>
+    </div>
+  );
+}
+
+// Wraps a row of StatCards in one hairline-bordered strip with internal
+// dividers, so eight metrics read as one ledger, not eight separate cards.
+function StatRow({ children }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 border border-black/[0.08] dark:border-white/10 rounded-lg divide-x divide-y divide-black/[0.08] dark:divide-white/10 mb-6 overflow-hidden">
+      {children}
     </div>
   );
 }
@@ -917,52 +928,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white">
-      <header className="border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-[#0B0D12]/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="font-display font-extrabold text-lg tracking-tight">
-            <span className="text-accent">Resurrect</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-sm font-medium leading-tight">{user?.businessName}</div>
-              <div className="text-xs text-black/40 dark:text-white/40 leading-tight">{user?.email}</div>
-            </div>
-            <button
-              onClick={handleStartRecovery}
-              disabled={running}
-              className="bg-ink dark:bg-white text-white dark:text-ink px-4 py-2 rounded-xl font-medium text-sm hover:bg-ink/90 dark:hover:bg-white/90 disabled:opacity-50"
-            >
-              {running ? "Processing…" : "Start Recovery"}
-            </button>
-            {(user?.businessType === "b2b" || user?.businessType === "hybrid" || !user?.businessType) && (
-              <Link to="/receivables" className="hidden sm:inline-flex text-sm text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white">
-                Receivables
-              </Link>
-            )}
-            <Link to="/reconciliation" className="hidden sm:inline-flex text-sm text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white">
-              Reconciliation
-            </Link>
-            <ThemeToggle />
-            <button
-              onClick={() => setGuideOpen(true)}
-              className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2"
-              title="How Resurrect works"
-              aria-label="How Resurrect works"
-            >
-              <HelpCircle size={19} />
-            </button>
-            <Link to="/settings" className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2" title="Business settings">
-              <SettingsIcon size={18} />
-            </Link>
-            <button onClick={logout} className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2" title="Log out">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8">
+    <AppShell
+      title="Dashboard"
+      subtitle="Failed payment recovery, live"
+      actions={
+        <>
+          <button
+            onClick={() => setGuideOpen(true)}
+            className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white p-2"
+            title="How Resurrect works"
+            aria-label="How Resurrect works"
+          >
+            <HelpCircle size={18} />
+          </button>
+          <button
+            onClick={handleStartRecovery}
+            disabled={running}
+            className="bg-ink dark:bg-white text-white dark:text-ink px-4 py-2 rounded-xl font-medium text-sm hover:bg-ink/90 dark:hover:bg-white/90 disabled:opacity-50 whitespace-nowrap"
+          >
+            {running ? "Processing…" : "Start Recovery"}
+          </button>
+        </>
+      }
+    >
         {metrics && metrics.totalFailedPayments === 0 && metrics.totalRecovered === 0 && (
           <div className="bg-ink dark:bg-panel text-white rounded-2xl p-6 mb-6 flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
@@ -995,7 +983,7 @@ export default function Dashboard() {
               <strong className="text-ink dark:text-white">Data trust:</strong> Recovered revenue counts only verified Razorpay test transactions. Synthetic recovery is tracked separately so simulated outcomes never look like real money recovered.
               {metrics.simulatedRecovered > 0 && <span className="ml-1">Simulated recovered: {rupees(metrics.simulatedRecovered)}.</span>}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <StatRow>
               <StatCard icon={AlertTriangle} label="Revenue at risk" value={rupees(metrics.revenueAtRisk)} tone="risk" />
               <StatCard icon={CheckCircle2} label="Verified recovered" value={rupees(metrics.verifiedRecovered ?? metrics.totalRecovered)} tone="recovered" />
               <StatCard icon={Percent} label="Recovery rate" value={pct(metrics.recoveryRate)} />
@@ -1004,7 +992,7 @@ export default function Dashboard() {
               <StatCard icon={RotateCcw} label="Retries" value={metrics.retryAttemptsCount} />
               <StatCard icon={CheckCircle2} label="Successful recoveries" value={metrics.successfulRecoveries} tone="recovered" />
               <StatCard icon={XCircle} label="Failed recoveries" value={metrics.failedRecoveries} tone="risk" />
-            </div>
+            </StatRow>
 
             <AnalyticsCharts metrics={metrics} />
             <DashboardInsights
@@ -1051,13 +1039,12 @@ export default function Dashboard() {
             </table>
           </div>
         </div>
-      </main>
 
       {selectedId && (
         <PaymentDetail paymentId={selectedId} onClose={() => setSelectedId(null)} onChanged={refresh} />
       )}
       <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
       <FloatingAssistant />
-    </div>
+    </AppShell>
   );
 }

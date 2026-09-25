@@ -4,7 +4,10 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Zap, ShieldCheck, MessageSquare, BarChart3, ScrollText, GitBranch, Lock } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 
-const FEATURES = [
+// Ledger rows, not feature cards — the product is a record of money moving,
+// so the layout should read like one. Order roughly follows the flow of a
+// single recovery: detect -> decide -> act -> prove -> record.
+const LEDGER = [
   {
     icon: Zap,
     title: "AI decides, not just detects",
@@ -13,7 +16,7 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: "AI never touches money directly",
-    body: "Recommendations pass through a deterministic backend policy layer with hard limits (like max retries) the AI cannot override.",
+    body: "Recommendations pass through a deterministic backend policy layer with hard limits, like max retries, that the AI cannot override.",
   },
   {
     icon: MessageSquare,
@@ -23,12 +26,12 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: "Recovery funnel, end to end",
-    body: "Failed payments in, recovery actions taken, successful outcomes out — see exactly where revenue is being recovered and where it's leaking through the funnel.",
+    body: "Failed payments in, recovery actions taken, successful outcomes out — see exactly where revenue is being recovered and where it's leaking.",
   },
   {
     icon: ScrollText,
     title: "Full audit trail",
-    body: "Every decision — what the AI recommended, what the backend allowed, and why — is logged per payment for complete transparency.",
+    body: "Every decision — what the AI recommended, what the backend allowed, and why — is logged per payment.",
   },
   {
     icon: GitBranch,
@@ -38,122 +41,139 @@ const FEATURES = [
   {
     icon: Lock,
     title: "PCI-safe by design",
-    body: "We never see card numbers or bank credentials — Razorpay's own checkout captures those. Webhooks are signature-verified, secrets never leave the backend.",
+    body: "Card numbers and bank credentials are never seen here — Razorpay's own checkout captures those. Webhooks are signature-verified.",
   },
+];
+
+const LEDGER_STATS = [
+  ["₹4.8L+", "revenue at risk, sample run"],
+  ["38%", "typical recovery rate"],
+  ["3", "AI actions: retry, SMS, stop"],
+  ["100%", "of AI actions policy-checked"],
 ];
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-paper dark:bg-[#0B0D12] text-ink dark:text-white">
       {/* Nav */}
-      <nav className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-        <div className="font-display font-extrabold text-lg tracking-tight">
-           <span className="text-accent">Resurrect</span>
+      <nav className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.06]">
+        <div className="font-display font-bold text-[15px] tracking-tight flex items-baseline gap-2">
+          <span>Resurrect</span>
+          <span className="hidden sm:inline text-[11px] font-body font-normal text-ink/35 dark:text-white/35">
+            revenue recovery ledger
+          </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <ThemeToggle />
-          <Link to="/login" className="text-sm font-medium text-ink/70 hover:text-ink dark:text-white/70 dark:hover:text-white px-3 py-2">
+          <Link to="/login" className="text-sm text-ink/60 hover:text-ink dark:text-white/60 dark:hover:text-white px-3 py-2">
             Log in
           </Link>
           <Link
             to="/signup"
-            className="text-sm font-medium bg-ink dark:bg-white text-white dark:text-ink px-4 py-2 rounded-xl hover:bg-ink/90 dark:hover:bg-white/90 transition"
+            className="text-sm font-medium border border-ink/15 dark:border-white/20 px-4 py-2 rounded-lg hover:border-ink/30 dark:hover:border-white/40 hover:bg-ink/[0.03] dark:hover:bg-white/[0.05] transition-colors"
           >
             Get started
           </Link>
         </div>
       </nav>
 
-      {/* Hero */}
-      <header className="max-w-6xl mx-auto px-6 pt-16 pb-20">
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 text-xs font-medium bg-accent/10 text-accent px-3 py-1.5 rounded-full mb-6">
-            Built for the Razorpay AI Buildathon
-          </div>
-          <h1 className="font-display text-5xl md:text-6xl font-extrabold leading-[1.05] tracking-tight mb-6">
-            Turn failed payments into <span className="text-accent">recovered revenue.</span>
+      {/* Hero — one bold moment: the headline paired directly with a live-looking
+          recovered-amount readout, tabular-numeral style, like a ledger total. */}
+      <header className="max-w-5xl mx-auto px-6 pt-20 pb-16 grid md:grid-cols-[1.3fr_1fr] gap-12 items-end">
+        <div>
+          <h1 className="font-display text-[2.75rem] md:text-[3.4rem] font-bold leading-[1.06] tracking-tight mb-6 max-w-lg">
+            Failed payments have a recovery price. This agent finds it.
           </h1>
-          <p className="text-lg text-ink/60 dark:text-white/60 leading-relaxed mb-8 max-w-xl">
-            An AI agent that finds failed payments, decides the right action for each one,
-            reaches out automatically, and proves — with numbers — how much more it recovers
-            than a rules-only approach.
+          <p className="text-[17px] text-ink/55 dark:text-white/50 leading-relaxed mb-8 max-w-md">
+            It finds failed payments, decides the right action for each one, reaches out
+            automatically, and shows — with numbers — how much more it recovers than a
+            rules-only approach.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-6 py-3.5 rounded-xl font-medium hover:bg-ink/90 dark:hover:bg-white/90 transition"
+              className="inline-flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-5 py-3 rounded-lg text-sm font-medium hover:bg-ink/88 dark:hover:bg-white/88 transition-colors"
             >
-              Start recovering revenue <ArrowRight size={16} />
+              Start recovering revenue <ArrowRight size={15} />
             </Link>
-            <Link to="/login" className="text-sm font-medium text-ink/60 hover:text-ink dark:text-white/60 dark:hover:text-white">
+            <Link to="/login" className="text-sm text-ink/50 hover:text-ink dark:text-white/50 dark:hover:text-white">
               I already have an account
             </Link>
           </div>
         </div>
 
-        {/* Stat strip */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-px bg-black/5 dark:bg-white/10 rounded-2xl overflow-hidden border border-black/5 dark:border-white/10">
-          {[
-            ["₹4.8L+", "revenue at risk, sample run"],
-            ["38%", "typical recovery rate"],
-            ["3", "AI actions: retry, SMS, stop"],
-            ["100%", "of AI actions policy-checked"],
-          ].map(([stat, label]) => (
-            <div key={label} className="bg-white dark:bg-panel p-6">
-              <div className="font-display text-2xl font-bold text-accent">{stat}</div>
-              <div className="text-sm text-ink/50 dark:text-white/50 mt-1">{label}</div>
-            </div>
-          ))}
+        {/* Ledger total card — the one place the accent color gets to do real work */}
+        <div className="border border-black/[0.08] dark:border-white/[0.1] rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-black/[0.08] dark:border-white/[0.1] flex items-baseline justify-between">
+            <span className="text-xs uppercase tracking-wide text-ink/40 dark:text-white/35">Sample run</span>
+            <span className="text-xs text-recovered flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-recovered" /> recovered
+            </span>
+          </div>
+          <div className="px-5 py-5">
+            <div className="font-display text-3xl font-bold tabular-nums text-recovered">₹1,82,400</div>
+            <div className="text-xs text-ink/40 dark:text-white/35 mt-1">of ₹4,80,000 at risk this batch</div>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-black/[0.08] dark:divide-white/[0.1] border-t border-black/[0.08] dark:border-white/[0.1]">
+            {LEDGER_STATS.slice(1).map(([stat, label]) => (
+              <div key={label} className="px-4 py-3.5">
+                <div className="font-display text-base font-semibold tabular-nums">{stat}</div>
+                <div className="text-[11px] text-ink/40 dark:text-white/35 mt-0.5 leading-tight">{label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* Features */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="max-w-xl mb-12">
-          <h2 className="font-display text-3xl font-bold tracking-tight mb-3">
+      {/* Ledger rows — replaces the identical-card grid. Each row is a hairline
+          divider, an index-free icon, and text; the discipline is in the alignment,
+          not in a border-radius. */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <div className="max-w-lg mb-10">
+          <h2 className="font-display text-2xl font-bold tracking-tight mb-2">
             Not just "send everyone a reminder."
           </h2>
-          <p className="text-ink/60 dark:text-white/60">
-            Basic failed-payment recovery is generic. The intelligence — and the safety rails
-            around it — is where this gets interesting.
+          <p className="text-ink/55 dark:text-white/50 text-[15px]">
+            Basic failed-payment recovery is generic. The intelligence, and the safety rails
+            around it, is where this gets interesting.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {FEATURES.map(({ icon: Icon, title, body }) => (
+        <div className="border-t border-black/[0.08] dark:border-white/[0.1]">
+          {LEDGER.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="bg-white dark:bg-panel rounded-2xl border border-black/5 dark:border-white/10 shadow-soft dark:shadow-soft-dark p-6 hover:-translate-y-0.5 hover:shadow-lg transition"
+              className="grid md:grid-cols-[220px_1fr] gap-3 md:gap-8 py-6 border-b border-black/[0.08] dark:border-white/[0.1]"
             >
-              <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center mb-4">
-                <Icon size={20} />
+              <div className="flex items-center gap-3 font-display font-semibold text-[15px]">
+                <Icon size={16} className="text-accent shrink-0" strokeWidth={2} />
+                {title}
               </div>
-              <div className="font-display font-bold mb-2">{title}</div>
-              <div className="text-sm text-ink/60 dark:text-white/60 leading-relaxed">{body}</div>
+              <div className="text-sm text-ink/55 dark:text-white/50 leading-relaxed max-w-xl">{body}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="bg-ink dark:bg-panel text-white">
-        <div className="max-w-6xl mx-auto px-6 py-16 flex flex-col md:flex-row items-center justify-between gap-6">
+      <section className="border-t border-black/[0.08] dark:border-white/[0.1]">
+        <div className="max-w-5xl mx-auto px-6 py-14 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
-            <div className="font-display text-2xl font-bold mb-2">See it recover ₹ in real time.</div>
-            <div className="text-white/60 max-w-md">
-              Sign up, seed the sample dataset, and hit "Start Recovery" — the dashboard updates live.
+            <div className="font-display text-xl font-bold mb-1.5">See it recover ₹ in real time.</div>
+            <div className="text-ink/50 dark:text-white/45 text-sm max-w-md">
+              Sign up, seed the sample dataset, and start recovery — the ledger updates live.
             </div>
           </div>
           <Link
             to="/signup"
-            className="inline-flex items-center gap-2 bg-white text-ink px-6 py-3.5 rounded-xl font-medium hover:bg-white/90 transition whitespace-nowrap"
+            className="inline-flex items-center gap-2 bg-ink dark:bg-white text-white dark:text-ink px-5 py-3 rounded-lg text-sm font-medium hover:bg-ink/88 dark:hover:bg-white/88 transition-colors whitespace-nowrap"
           >
-            Get started <ArrowRight size={16} />
+            Get started <ArrowRight size={15} />
           </Link>
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-8 text-sm text-ink/40 dark:text-white/30">
-        Resurrect — AI Revenue Recovery Engine.
+      <footer className="max-w-5xl mx-auto px-6 py-8 text-xs text-ink/35 dark:text-white/25">
+        Resurrect — AI revenue recovery engine.
       </footer>
     </div>
   );
